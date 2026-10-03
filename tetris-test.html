@@ -1,48 +1,28 @@
 <!doctype html>
-<html lang="it">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>JSON Drop · Tetris Test</title>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>JSON Drop · Root</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0c0f;--panel:#151820;--card:#20242e;--line:#596170;--text:#ffffff;--muted:#b8bec9;--accent:#9db2ff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,sans-serif;overscroll-behavior:none}
-main{max-width:620px;margin:auto;padding:18px 14px 80px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.top b{font-size:18px}.top small{display:block;color:var(--muted);margin-top:3px}
-button{font:inherit;color:inherit}.add{min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:0 14px}
-.palette{display:flex;gap:8px;overflow:auto;padding-bottom:12px}.piece{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px}
-.board{position:relative;border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:12px;min-height:380px}
-.hint{color:var(--muted);font-size:12px;margin:0 0 10px 3px}
-.slot{min-height:62px;border:1px dashed var(--line);border-radius:13px;margin:8px 0;display:flex;align-items:center;padding:7px;transition:.15s}.slot[data-depth="1"]{margin-left:34px}.slot[data-depth="2"]{margin-left:68px}.slot.hot{border-color:var(--accent);background:#8ea6ff12}.ghost{min-height:50px;border:1px dashed var(--accent);border-radius:12px;margin:7px 0;display:flex;align-items:center;justify-content:center;color:var(--accent);font:700 10px ui-monospace,monospace;letter-spacing:.08em;opacity:.82}.ghost[data-depth="1"]{margin-left:34px}.ghost[data-depth="2"]{margin-left:68px}
-.node{width:100%;min-height:46px;border:1px solid #687181;border-radius:10px;background:var(--card);display:flex;align-items:center;gap:8px;padding:7px 9px;touch-action:none;user-select:none;-webkit-user-select:none}.grip{color:var(--muted);font-size:18px}.node input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--text);font-size:16px}.type{font:700 9px ui-monospace,monospace;color:var(--muted);letter-spacing:.08em}
-.node.dragging{position:fixed;z-index:99;width:min(360px,78vw);pointer-events:none;opacity:.94;box-shadow:0 14px 40px #0008;transform:scale(1.02)}
-.empty{color:#9ba3b0;font-size:11px;margin:auto}.foot{color:var(--muted);font-size:11px;margin-top:12px;text-align:center}
-</style>
-</head>
-<body><main>
-<div class="top"><div><b>Tetris Test</b><small>Tap crea · tieni e trascina · scrivi</small></div><button class="add" id="reset">Reset</button></div>
-<div class="palette">
-<button class="piece" data-type="OBJECT">+ Object</button>
-<button class="piece" data-type="LIST">+ List</button>
-<button class="piece" data-type="TEXT">+ Text</button>
-</div>
-<div class="board" id="board">
-<p class="hint">La posizione orizzontale rappresenta la profondità.</p>
-<div class="slot" data-depth="0"><span class="empty">ROOT</span></div>
-<div class="slot" data-depth="1"><span class="empty">CHILD</span></div>
-<div class="slot" data-depth="2"><span class="empty">CHILD²</span></div>
-<div class="slot" data-depth="0"><span class="empty">ROOT</span></div>
-<div class="slot" data-depth="1"><span class="empty">CHILD</span></div>
-</div>
-<div class="foot">Esperimento isolato. Non modifica JSON Drop V0.</div>
-</main>
-<script>
-const board=document.querySelector('#board'), slots=[...document.querySelectorAll('.slot')];let seq=0,drag=null,offX=0,offY=0,home=null;
-function placeholder(s){if(!s.querySelector('.node')&&!s.querySelector('.empty')){let e=document.createElement('span');e.className='empty';e.textContent=['ROOT','CHILD','CHILD²'][+s.dataset.depth]||'SLOT';s.append(e)}}
-function make(type){const n=document.createElement('div');n.className='node';n.innerHTML='<span class="grip">≡</span><span class="type">'+type+'</span><input aria-label="Valore" placeholder="scrivi qui…">';n.querySelector('input').addEventListener('pointerdown',e=>e.stopPropagation());n.addEventListener('pointerdown',start);return n}
-function put(n,s){s.querySelector('.empty')?.remove();s.append(n)}
-document.querySelectorAll('.piece').forEach(b=>b.addEventListener('click',()=>{let target=slots.find(s=>!s.querySelector('.node'));if(target){put(make(b.dataset.type),target);target.querySelector('input').focus()}}));
-function start(e){if(e.target.closest('input'))return;drag=e.currentTarget;home=drag.parentElement;const r=drag.getBoundingClientRect();offX=e.clientX-r.left;offY=e.clientY-r.top;drag.style.left=r.left+'px';drag.style.top=r.top+'px';drag.classList.add('dragging');drag.setPointerCapture(e.pointerId);drag.addEventListener('pointermove',move);drag.addEventListener('pointerup',end,{once:true});e.preventDefault()}
-function clearGhosts(){board.querySelectorAll('.ghost').forEach(g=>g.remove())}function ghostsAround(s){clearGhosts();if(!s)return;const d=+s.dataset.depth;[['PRIMA',d],['FIGLIO',Math.min(2,d+1)],['DOPO',d]].forEach(([label,depth],i)=>{const g=document.createElement('div');g.className='ghost';g.dataset.depth=depth;g.dataset.where=i===0?'before':i===1?'after':'after';g.textContent='+ '+label;if(i===0)s.before(g);else if(i===1)s.after(g);else{const ref=i===2?s.nextElementSibling:null;(ref||s).after(g)}})}function move(e){if(!drag)return;drag.style.left=(e.clientX-offX)+'px';drag.style.top=(e.clientY-offY)+'px';slots.forEach(s=>s.classList.remove('hot'));let under=document.elementsFromPoint(e.clientX,e.clientY);let s=under.map(x=>x.closest?.('.slot')).find(Boolean);if(s){s.classList.add('hot');ghostsAround(s)}else if(!under.some(x=>x.closest?.('.ghost')))clearGhosts()}
-function end(e){if(!drag)return;let under=document.elementsFromPoint(e.clientX,e.clientY),ghost=under.map(x=>x.closest?.('.ghost')).find(Boolean),target=under.map(x=>x.closest?.('.slot')).find(Boolean);if(ghost){const ns=document.createElement('div');ns.className='slot';ns.dataset.depth=ghost.dataset.depth;ghost.replaceWith(ns);target=ns}clearGhosts();drag.classList.remove('dragging');drag.style.left='';drag.style.top='';drag.removeEventListener('pointermove',move);slots.forEach(s=>s.classList.remove('hot'));if(target&&(!target.querySelector('.node')||target===home)){let old=home;put(drag,target);placeholder(old)}else put(drag,home);drag=null;home=null}
-document.querySelector('#reset').addEventListener('click',()=>location.reload());
+:root{color-scheme:dark;--bg:#0b0c0f;--panel:#151820;--card:#20242e;--line:#596170;--text:#fff;--muted:#b8bec9;--accent:#9db2ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,sans-serif}main{max-width:620px;margin:auto;padding:18px 14px 80px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.top b{font-size:18px}.top small{display:block;color:var(--muted);margin-top:3px}
+button,input{font:inherit;color:inherit}.palette{display:flex;gap:8px;margin-bottom:12px}.piece{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px}
+.root{border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}.root-head,.root-foot{height:48px;display:flex;align-items:center;padding:0 14px;font-family:ui-monospace,monospace}.root-head{border-bottom:1px solid #303642}.root-foot{border-top:1px solid #303642;justify-content:flex-end}
+.root-body{position:relative;min-height:280px;padding:12px}.slot{min-height:56px;margin:5px 0;border:1px solid transparent;border-radius:12px}.slot.hot{background:#9db2ff12;box-shadow:inset 0 0 0 1px var(--accent)}
+.node{min-height:48px;border:1px solid #687181;border-radius:11px;background:var(--card);display:flex;align-items:center;gap:8px;padding:7px 10px;touch-action:none;user-select:none;-webkit-user-select:none}
+.grip{color:var(--muted);font-size:18px}.key,.value{min-width:0;border:0;outline:0;background:transparent}.key{width:38%;font-weight:650}.colon{color:var(--muted)}.value{flex:1}.node.dragging{position:fixed;z-index:9;width:min(400px,84vw);pointer-events:none;opacity:.94;box-shadow:0 14px 40px #0008}
+.note{color:var(--muted);font-size:11px;text-align:center;margin-top:12px}
+</style></head><body><main>
+<div class="top"><div><b>JSON Drop</b><small>ROOT contiene proprietà</small></div></div>
+<div class="palette"><button class="piece" id="add">+ Proprietà</button></div>
+<section class="root"><div class="root-head"><strong>ROOT&nbsp; {</strong></div><div class="root-body" id="body"></div><div class="root-foot"><strong>}</strong></div></section>
+<div class="note">Gli slot esistono, ma non si vedono.</div>
+</main><script>
+const body=document.querySelector('#body');let drag=null,home=null,dx=0,dy=0;
+function slot(){let s=document.createElement('div');s.className='slot';s.addEventListener('pointermove',()=>{if(drag)s.classList.add('hot')});return s}
+function normalize(){if(!body.children.length)body.append(slot());[...body.children].forEach((el,i)=>{if(el.classList.contains('node')){if(!el.previousElementSibling?.classList.contains('slot'))el.before(slot());if(!el.nextElementSibling?.classList.contains('slot'))el.after(slot())}})}
+function node(){let n=document.createElement('div');n.className='node';n.innerHTML='<span class="grip">≡</span><input class="key" placeholder="chiave"><span class="colon">:</span><input class="value" placeholder="valore">';n.querySelectorAll('input').forEach(x=>x.addEventListener('pointerdown',e=>e.stopPropagation()));n.addEventListener('pointerdown',start);return n}
+document.querySelector('#add').onclick=()=>{let n=node(),s=[...body.querySelectorAll('.slot')].at(-1);s.before(n);normalize();n.querySelector('.key').focus()}
+function start(e){drag=e.currentTarget;home=drag.nextElementSibling;let r=drag.getBoundingClientRect();dx=e.clientX-r.left;dy=e.clientY-r.top;drag.style.left=r.left+'px';drag.style.top=r.top+'px';drag.classList.add('dragging');drag.setPointerCapture(e.pointerId);drag.addEventListener('pointermove',move);drag.addEventListener('pointerup',end,{once:true});e.preventDefault()}
+function move(e){drag.style.left=e.clientX-dx+'px';drag.style.top=e.clientY-dy+'px';body.querySelectorAll('.slot').forEach(s=>s.classList.remove('hot'));let s=document.elementsFromPoint(e.clientX,e.clientY).map(x=>x.closest?.('.slot')).find(Boolean);s?.classList.add('hot')}
+function end(e){let s=document.elementsFromPoint(e.clientX,e.clientY).map(x=>x.closest?.('.slot')).find(Boolean);drag.classList.remove('dragging');drag.style.left=drag.style.top='';drag.removeEventListener('pointermove',move);if(s)s.before(drag);else if(home)home.before(drag);body.querySelectorAll('.slot').forEach(s=>s.classList.remove('hot'));drag=home=null;normalize()}
+normalize();
 </script></body></html>
