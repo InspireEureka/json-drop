@@ -76,3 +76,7 @@ Usa poi l'URL confermato da GitHub nella stessa schermata. Non è stato verifica
 ## Limiti V0
 
 Nessun undo o importazione JSON. Pensata per qualche decina di nodi. Zoom con pulsanti e pan a un dito; nessuna gesture pinch personalizzata. Il fit di strutture molto grandi riduce anche i controlli: aumenta lo zoom per modificarle. Safari su iPhone fisico, tastiera iOS, notch e gesture di sistema richiedono ancora una verifica sul dispositivo.
+
+## Licenza
+
+JSON Drop è distribuito sotto **GNU Affero General Public License v3.0 (AGPL-3.0)**. Puoi usare, studiare, modificare e ridistribuire il software secondo i termini della licenza. Le versioni modificate offerte agli utenti tramite rete devono rendere disponibile il relativo codice sorgente come previsto dalla AGPLv3. Vedi [LICENSE](LICENSE).
