@@ -1,28 +1,35 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>JSON Drop · Root</title>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>JSON Drop · Recursive Boxes</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0c0f;--panel:#151820;--card:#20242e;--line:#596170;--text:#fff;--muted:#b8bec9;--accent:#9db2ff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,sans-serif}main{max-width:620px;margin:auto;padding:18px 14px 80px}
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.top b{font-size:18px}.top small{display:block;color:var(--muted);margin-top:3px}
-button,input{font:inherit;color:inherit}.palette{display:flex;gap:8px;margin-bottom:12px}.piece{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px}
-.root{border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}.root-head,.root-foot{height:48px;display:flex;align-items:center;padding:0 14px;font-family:ui-monospace,monospace}.root-head{border-bottom:1px solid #303642}.root-foot{border-top:1px solid #303642;justify-content:flex-end}
-.root-body{position:relative;min-height:280px;padding:12px}.slot{min-height:56px;margin:5px 0;border:1px solid transparent;border-radius:12px}.slot.hot{background:#9db2ff12;box-shadow:inset 0 0 0 1px var(--accent)}
-.node{min-height:48px;border:1px solid #687181;border-radius:11px;background:var(--card);display:flex;align-items:center;gap:8px;padding:7px 10px;touch-action:none;user-select:none;-webkit-user-select:none}
-.grip{color:var(--muted);font-size:18px}.key,.value{min-width:0;border:0;outline:0;background:transparent}.key{width:38%;font-weight:650}.colon{color:var(--muted)}.value{flex:1}.node.dragging{position:fixed;z-index:9;width:min(400px,84vw);pointer-events:none;opacity:.94;box-shadow:0 14px 40px #0008}
+:root{color-scheme:dark;--bg:#0b0c0f;--panel:#151820;--card:#20242e;--line:#596170;--text:#fff;--muted:#aeb5c1;--accent:#9db2ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,sans-serif;overscroll-behavior:none}
+main{max-width:620px;margin:auto;padding:18px 14px 70px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.top b{font-size:18px}.top small{display:block;color:var(--muted);margin-top:3px}
+button{font:inherit;color:inherit}.add{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 15px;margin-bottom:12px}
+.box{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin:8px 0;overflow:hidden}
+.box>.head{height:48px;display:flex;align-items:center;gap:8px;padding:0 11px;background:var(--card);touch-action:none;user-select:none;-webkit-user-select:none}
+.toggle{width:28px;height:28px;border:0;background:transparent;padding:0;color:var(--muted);font-size:17px}.name{flex:1;font-weight:650}.brace{font:700 16px ui-monospace,monospace;color:var(--muted)}
+.body{min-height:58px;padding:7px 9px 9px 26px;border-top:1px solid #303642;transition:.15s}.body.hot{background:#9db2ff12;box-shadow:inset 0 0 0 1px var(--accent)}
+.close{height:30px;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;color:var(--muted);font:700 16px ui-monospace,monospace;border-top:1px solid #303642}
+.box.collapsed>.body,.box.collapsed>.close{display:none}.box.dragging{position:fixed;z-index:50;width:min(440px,86vw);pointer-events:none;opacity:.94;box-shadow:0 18px 50px #000a}
+.empty{height:42px;display:flex;align-items:center;color:#707887;font-size:11px;pointer-events:none}.root{margin-top:0}.root>.head{background:#252a35}.root>.head .name{letter-spacing:.03em}
 .note{color:var(--muted);font-size:11px;text-align:center;margin-top:12px}
 </style></head><body><main>
-<div class="top"><div><b>JSON Drop</b><small>ROOT contiene proprietà</small></div></div>
-<div class="palette"><button class="piece" id="add">+ Proprietà</button></div>
-<section class="root"><div class="root-head"><strong>ROOT&nbsp; {</strong></div><div class="root-body" id="body"></div><div class="root-foot"><strong>}</strong></div></section>
-<div class="note">Gli slot esistono, ma non si vedono.</div>
+<div class="top"><div><b>JSON Drop</b><small>Box dentro box</small></div></div>
+<button class="add" id="add">+ Box</button>
+<section class="box root" id="root">
+ <div class="head"><button class="toggle" aria-label="Espandi o comprimi">▾</button><span class="name">ROOT</span><span class="brace">{</span></div>
+ <div class="body"></div><div class="close">}</div>
+</section>
+<div class="note">Trascina un box dentro l'area di un altro box.</div>
 </main><script>
-const body=document.querySelector('#body');let drag=null,home=null,dx=0,dy=0;
-function slot(){let s=document.createElement('div');s.className='slot';s.addEventListener('pointermove',()=>{if(drag)s.classList.add('hot')});return s}
-function normalize(){if(!body.children.length)body.append(slot());[...body.children].forEach((el,i)=>{if(el.classList.contains('node')){if(!el.previousElementSibling?.classList.contains('slot'))el.before(slot());if(!el.nextElementSibling?.classList.contains('slot'))el.after(slot())}})}
-function node(){let n=document.createElement('div');n.className='node';n.innerHTML='<span class="grip">≡</span><input class="key" placeholder="chiave"><span class="colon">:</span><input class="value" placeholder="valore">';n.querySelectorAll('input').forEach(x=>x.addEventListener('pointerdown',e=>e.stopPropagation()));n.addEventListener('pointerdown',start);return n}
-document.querySelector('#add').onclick=()=>{let n=node(),s=[...body.querySelectorAll('.slot')].at(-1);s.before(n);normalize();n.querySelector('.key').focus()}
-function start(e){drag=e.currentTarget;home=drag.nextElementSibling;let r=drag.getBoundingClientRect();dx=e.clientX-r.left;dy=e.clientY-r.top;drag.style.left=r.left+'px';drag.style.top=r.top+'px';drag.classList.add('dragging');drag.setPointerCapture(e.pointerId);drag.addEventListener('pointermove',move);drag.addEventListener('pointerup',end,{once:true});e.preventDefault()}
-function move(e){drag.style.left=e.clientX-dx+'px';drag.style.top=e.clientY-dy+'px';body.querySelectorAll('.slot').forEach(s=>s.classList.remove('hot'));let s=document.elementsFromPoint(e.clientX,e.clientY).map(x=>x.closest?.('.slot')).find(Boolean);s?.classList.add('hot')}
-function end(e){let s=document.elementsFromPoint(e.clientX,e.clientY).map(x=>x.closest?.('.slot')).find(Boolean);drag.classList.remove('dragging');drag.style.left=drag.style.top='';drag.removeEventListener('pointermove',move);if(s)s.before(drag);else if(home)home.before(drag);body.querySelectorAll('.slot').forEach(s=>s.classList.remove('hot'));drag=home=null;normalize()}
-normalize();
+const root=document.querySelector('#root');let seq=0,drag=null,origin=null,dx=0,dy=0;
+function refreshEmpty(body){body.querySelector(':scope > .empty')?.remove();if(!body.querySelector(':scope > .box')){let e=document.createElement('div');e.className='empty';e.textContent='rilascia un box qui';body.append(e)}}
+function makeBox(){const b=document.createElement('section');b.className='box';b.dataset.id=++seq;b.innerHTML='<div class="head"><button class="toggle" aria-label="Espandi o comprimi">▾</button><span class="name">BOX '+seq+'</span><span class="brace">{</span></div><div class="body"></div><div class="close">}</div>';const head=b.querySelector(':scope > .head'),tog=b.querySelector(':scope > .head > .toggle');tog.addEventListener('pointerdown',e=>e.stopPropagation());tog.addEventListener('click',()=>{b.classList.toggle('collapsed');tog.textContent=b.classList.contains('collapsed')?'▸':'▾'});head.addEventListener('pointerdown',start);refreshEmpty(b.querySelector(':scope > .body'));return b}
+document.querySelector('#add').onclick=()=>{const b=makeBox(),body=root.querySelector(':scope > .body');body.append(b);refreshEmpty(body)}
+function start(e){if(e.target.closest('button'))return;drag=e.currentTarget.parentElement;origin=drag.parentElement;const r=drag.getBoundingClientRect();dx=e.clientX-r.left;dy=e.clientY-r.top;drag.style.left=r.left+'px';drag.style.top=r.top+'px';drag.style.height=r.height+'px';drag.classList.add('dragging');drag.setPointerCapture(e.pointerId);drag.addEventListener('pointermove',move);drag.addEventListener('pointerup',end,{once:true});e.preventDefault()}
+function targetAt(x,y){return document.elementsFromPoint(x,y).map(el=>el.closest?.('.body')).find(body=>body&&!drag.contains(body))}
+function move(e){if(!drag)return;drag.style.left=e.clientX-dx+'px';drag.style.top=e.clientY-dy+'px';document.querySelectorAll('.body').forEach(x=>x.classList.remove('hot'));targetAt(e.clientX,e.clientY)?.classList.add('hot')}
+function end(e){if(!drag)return;const target=targetAt(e.clientX,e.clientY);drag.classList.remove('dragging');drag.style.left=drag.style.top=drag.style.height='';drag.removeEventListener('pointermove',move);document.querySelectorAll('.body').forEach(x=>x.classList.remove('hot'));if(target){target.append(drag);refreshEmpty(target)}else origin.append(drag);refreshEmpty(origin);drag=origin=null}
+refreshEmpty(root.querySelector(':scope > .body'));
 </script></body></html>
