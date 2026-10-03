@@ -15,17 +15,17 @@ button{font:inherit;color:inherit}.add{border:1px solid var(--line);background:v
 .empty{height:10px;display:flex;align-items:center;color:transparent;font-size:1px;pointer-events:none}.root{margin-top:0;border:1px solid var(--line);border-radius:12px;padding:4px}.root>.head{background:transparent}.root>.head .name{letter-spacing:.03em}
 .note{color:var(--muted);font-size:11px;text-align:center;margin-top:12px}
 </style></head><body><main>
-<div class="top"><div><b>JSON Drop</b><small>Box dentro box</small></div></div>
-<button class="add" id="add">+ Box</button>
+<div class="top"><div><b>JSON Drop</b><small>Object dentro Object</small></div></div>
+<button class="add" id="add">+ Object {}</button>
 <section class="box root" id="root">
  <div class="head"><button class="toggle" aria-label="Espandi o comprimi">▾</button><span class="name">ROOT</span><span class="brace">{</span></div>
  <div class="body"></div><div class="close">}</div>
 </section>
-<div class="note">Trascina un box dentro l'area di un altro box.</div>
+<div class="note">Trascina un Object dentro un altro Object.</div>
 </main><script>
 const root=document.querySelector('#root');let seq=0,drag=null,origin=null,dx=0,dy=0;
-function refreshEmpty(body){body.querySelector(':scope > .empty')?.remove();if(!body.querySelector(':scope > .box')){let e=document.createElement('div');e.className='empty';e.textContent='rilascia un box qui';body.append(e)}}
-function makeBox(){const b=document.createElement('section');b.className='box';b.dataset.id=++seq;b.innerHTML='<div class="head"><button class="toggle" aria-label="Espandi o comprimi">▾</button><span class="name">BOX '+seq+'</span><span class="brace">{</span></div><div class="body"></div><div class="close">}</div>';const head=b.querySelector(':scope > .head'),tog=b.querySelector(':scope > .head > .toggle');tog.addEventListener('pointerdown',e=>e.stopPropagation());tog.addEventListener('click',()=>{b.classList.toggle('collapsed');tog.textContent=b.classList.contains('collapsed')?'▸':'▾'});head.addEventListener('pointerdown',start);refreshEmpty(b.querySelector(':scope > .body'));return b}
+function refreshEmpty(body){body.querySelector(':scope > .empty')?.remove();if(!body.querySelector(':scope > .box')){let e=document.createElement('div');e.className='empty';e.textContent='rilascia un Object qui';body.append(e)}}
+function makeBox(){const b=document.createElement('section');b.className='box';b.dataset.id=++seq;b.innerHTML='<div class="head"><button class="toggle" aria-label="Espandi o comprimi">▾</button><span class="name">Object '+seq+'</span><span class="brace">{</span></div><div class="body"></div><div class="close">}</div>';const head=b.querySelector(':scope > .head'),tog=b.querySelector(':scope > .head > .toggle');tog.addEventListener('pointerdown',e=>e.stopPropagation());tog.addEventListener('click',()=>{b.classList.toggle('collapsed');tog.textContent=b.classList.contains('collapsed')?'▸':'▾'});head.addEventListener('pointerdown',start);refreshEmpty(b.querySelector(':scope > .body'));return b}
 document.querySelector('#add').onclick=()=>{const b=makeBox(),body=root.querySelector(':scope > .body');body.append(b);refreshEmpty(body)}
 function start(e){if(e.target.closest('button'))return;drag=e.currentTarget.parentElement;origin=drag.parentElement;const r=drag.getBoundingClientRect();dx=e.clientX-r.left;dy=e.clientY-r.top;drag.style.left=r.left+'px';drag.style.top=r.top+'px';drag.style.height=r.height+'px';drag.classList.add('dragging');drag.setPointerCapture(e.pointerId);drag.addEventListener('pointermove',move);drag.addEventListener('pointerup',end,{once:true});e.preventDefault()}
 function targetAt(x,y){return document.elementsFromPoint(x,y).map(el=>el.closest?.('.body')).find(body=>body&&!drag.contains(body))}
