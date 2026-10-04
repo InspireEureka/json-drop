@@ -234,6 +234,10 @@ main{
 <main>
   <div class="top">
     <b>JSON Drop</b>
+    <button id="import" aria-label="Importa JSON" title="Importa JSON">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 8 5-5 5 5"></path><path d="M5 21h14"></path></svg>
+    </button>
+    <input id="import-file" type="file" accept=".json,application/json" hidden>
     <button id="copy" aria-label="Copia JSON" title="Copia JSON">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
     </button>
@@ -256,7 +260,7 @@ let openAdder=null;
 let focusAfterRender=null;
 
 const node=(type,value)=>({id:nextId++,type,value});
-const root={id:0,type:'object',children:[]};
+let root={id:0,type:'object',children:[]};
 
 function primitive(type){
   if(type==='string')return node('string','value');
@@ -269,6 +273,41 @@ function primitive(type){
 
 function property(type){
   return {id:nextId++,kind:'property',key:'key',value:primitive(type)};
+}
+
+function fromJS(value){
+  if(value===null)return node('null',null);
+  if(Array.isArray(value)){
+    return {id:nextId++,type:'array',children:value.map(fromJS)};
+  }
+  if(typeof value==='object'){
+    return {
+      id:nextId++,
+      type:'object',
+      children:Object.entries(value).map(([key,val])=>({
+        id:nextId++,
+        kind:'property',
+        key,
+        value:fromJS(val)
+      }))
+    };
+  }
+  if(typeof value==='string')return node('string',value);
+  if(typeof value==='number')return node('number',String(value));
+  if(typeof value==='boolean')return node('boolean',String(value));
+  throw new Error('Tipo JSON non supportato');
+}
+
+function importJSONValue(value){
+  if(value===null||(!Array.isArray(value)&&typeof value!=='object')){
+    throw new Error('Per ora il ROOT deve essere Object {} oppure Array []');
+  }
+  const imported=fromJS(value);
+  imported.id=0;
+  root=imported;
+  openAdder=null;
+  focusAfterRender=null;
+  render();
 }
 
 function esc(s){return JSON.stringify(String(s))}
@@ -435,14 +474,22 @@ function escapeHTML(s){
 }
 
 function render(){
-  let html=line(0,'<span class="code">{</span>');
-  root.children.forEach((p,index)=>{
+  const open=root.type==='array'?'[':'{';
+  const close=root.type==='array'?']':'}';
+  let html=line(0,'<span class="code">'+open+'</span>');
+
+  root.children.forEach((child,index)=>{
     const comma=index<root.children.length-1?',':'';
-    const key='<span class="code">&quot;</span><span class="key editable" contenteditable="true" spellcheck="false" data-edit-key="'+p.id+'">'+escapeHTML(p.key)+'</span><span class="code">&quot;: </span>';
-    html+=renderValue(p.value,1,key,comma,p.id);
+    if(root.type==='object'){
+      const key='<span class="code">&quot;</span><span class="key editable" contenteditable="true" spellcheck="false" data-edit-key="'+child.id+'">'+escapeHTML(child.key)+'</span><span class="code">&quot;: </span>';
+      html+=renderValue(child.value,1,key,comma,child.id);
+    }else{
+      html+=renderValue(child,1,'',comma,child.id);
+    }
   });
+
   html+=renderAdder(root,1);
-  html+=line(0,'<span class="code">}</span>');
+  html+=line(0,'<span class="code">'+close+'</span>');
   editor.innerHTML=html;
   bindEditor();
 
@@ -581,10 +628,32 @@ function flash(msg){
 }
 
 document.querySelector('#clear').onclick=()=>{
-  root.children.length=0;
+  root={id:0,type:'object',children:[]};
   openAdder=null;
   render();
   flash('ROOT svuotato');
+};
+
+const importButton=document.querySelector('#import');
+const importFile=document.querySelector('#import-file');
+
+importButton.onclick=()=>{
+  importFile.value='';
+  importFile.click();
+};
+
+importFile.onchange=async()=>{
+  const file=importFile.files?.[0];
+  if(!file)return;
+
+  try{
+    const text=await file.text();
+    const value=JSON.parse(text);
+    importJSONValue(value);
+    flash('JSON importato');
+  }catch(err){
+    flash('Import fallito: '+(err?.message||String(err)));
+  }
 };
 
 document.querySelector('#copy').onclick=async()=>{
