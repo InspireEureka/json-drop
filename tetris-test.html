@@ -16,7 +16,7 @@
 <div class="note">Durante il drag reagisce solo la destinazione sotto il dito.</div>
 </main><script>
 const root=document.querySelector('#root');
-let seq=0,drag=null,ghost=null,origin=null,originNext=null,timer=null,sx=0,sy=0,dx=0,dy=0,armed=false,current=null,lastX=0,lastY=0,lastTarget=null,raf=0,pendingX=0,pendingY=0;
+let seq=0,drag=null,ghost=null,origin=null,originNext=null,timer=null,sx=0,sy=0,dx=0,dy=0,armed=false,current=null,lastX=0,lastY=0,lastTarget=null,raf=0,pendingX=0,pendingY=0,lastSwapY=null;
 
 function make(){
   const o=document.createElement('section');
@@ -40,7 +40,7 @@ function clearTarget(){
 }
 
 function animatedObjects(){
-  return [...document.querySelectorAll('.object')].filter(o=>!o.closest('.source-drag'));
+  return [...document.querySelectorAll('.object:not(.root)')].filter(o=>!o.closest('.source-drag'));
 }
 
 function moveWithFlip(mutator){
@@ -50,16 +50,31 @@ function moveWithFlip(mutator){
     o.getAnimations().forEach(a=>a.cancel());
     before.set(o,r);
   });
+
   mutator();
+
+  const moved=[];
   els.forEach(o=>{
     if(!o.isConnected)return;
     const r=before.get(o),n=o.getBoundingClientRect();
     const x=r.left-n.left,y=r.top-n.top;
     if(Math.abs(x)<.5&&Math.abs(y)<.5)return;
+    moved.push({o,x,y});
+  });
+
+  const movedSet=new Set(moved.map(m=>m.o));
+  moved.forEach(({o,x,y})=>{
+    let p=o.parentElement?.closest('.object'),nested=false;
+    while(p){
+      if(movedSet.has(p)){nested=true;break}
+      p=p.parentElement?.closest('.object');
+    }
+    if(nested)return;
+
     o.style.willChange='transform';
     const a=o.animate(
       [{transform:'translate3d('+x+'px,'+y+'px,0)'},{transform:'translate3d(0,0,0)'}],
-      {duration:160,easing:'cubic-bezier(.2,.8,.2,1)'}
+      {duration:230,easing:'cubic-bezier(.22,1,.36,1)'}
     );
     a.onfinish=()=>o.style.removeProperty('will-change');
   });
@@ -84,11 +99,17 @@ function targetAt(x,y){
 
   if(mode==='inside'){
     card.classList.add('drop-inside');
-  }else if(!same){
+    lastTarget={o,mode};
+    return lastTarget;
+  }
+
+  if(!same){
+    if(lastSwapY!==null&&Math.abs(y-lastSwapY)<11)return lastTarget;
     moveWithFlip(()=>{
       if(mode==='before')o.before(drag);
       else o.after(drag);
     });
+    lastSwapY=y;
   }
 
   lastTarget={o,mode};
@@ -102,7 +123,7 @@ function start(e){
   const t=e.touches[0],o=e.currentTarget.parentElement;
   current=o;
   sx=lastX=t.clientX;sy=lastY=t.clientY;
-  armed=false;drag=null;
+  armed=false;drag=null;lastSwapY=null;
   clearTimeout(timer);
   timer=setTimeout(()=>begin(o),240);
 }
@@ -221,7 +242,7 @@ function reset(){
   }
   ghost?.remove();ghost=null;
   drag=origin=originNext=current=null;
-  armed=false;
+  armed=false;lastSwapY=null;
 }
 
 function rename(o){
