@@ -15,6 +15,12 @@
   --green:#65ff8f;
   --accent:#9db2ff;
   --danger:#ff7f87;
+  --json-key:#9cdcfe;
+  --json-string:#ce9178;
+  --json-number:#b5cea8;
+  --json-boolean:#569cd6;
+  --json-null:#569cd6;
+  --json-code:#d4d4d4;
   --indent:18px;
 }
 *{box-sizing:border-box}
@@ -65,30 +71,36 @@ main{
 }
 .line:hover{background:#ffffff05}
 .line:focus-within{background:#ffffff07}
-.code{color:var(--muted)}
-.key,.string{
-  color:var(--green);
+.code{color:var(--json-code)}
+.key{
+  color:var(--json-key);
   min-width:1ch;
   border-radius:5px;
   outline:none;
 }
-.number{color:#9db2ff}
-.boolean{color:#ffc978}
-.null{color:#c49cff}
+.string{
+  color:var(--json-string);
+  min-width:1ch;
+  border-radius:5px;
+  outline:none;
+}
+.number{color:var(--json-number)}
+.boolean{color:var(--json-boolean)}
+.null{color:var(--json-null)}
 .editable{
   padding:4px 3px;
   border-radius:6px;
   border-bottom:1px solid transparent;
   cursor:text;
-  caret-color:var(--green);
+  caret-color:var(--json-key);
   -webkit-user-select:text;
   user-select:text;
   touch-action:manipulation;
 }
 .editable:focus{
-  background:#65ff8f12;
-  border-bottom-color:var(--green);
-  box-shadow:inset 0 0 0 1px #65ff8f18;
+  background:#ffffff0a;
+  border-bottom-color:currentColor;
+  box-shadow:inset 0 0 0 1px #ffffff12;
 }
 .invalid{
   color:var(--danger)!important;
@@ -139,10 +151,30 @@ main{
   border-radius:12px;
   background:#1a2029;
   color:#d2d8e1;
-  padding:0 13px;
+  padding:0 13px 0 9px;
   font:600 14px system-ui,-apple-system,sans-serif;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
   transition:transform .06s ease,background .06s ease,border-color .06s ease,color .06s ease;
 }
+.type-icon{
+  width:28px;
+  height:28px;
+  flex:0 0 28px;
+  display:grid;
+  place-items:center;
+  border-radius:8px;
+  background:#0f1319;
+  border:1px solid #343d49;
+  font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.type-icon.string{color:var(--json-string)}
+.type-icon.number{color:var(--json-number)}
+.type-icon.boolean{color:var(--json-boolean)}
+.type-icon.null{color:var(--json-null)}
+.type-icon.object{color:var(--json-key)}
+.type-icon.array{color:#c586c0}
 .type-menu button:active{
   transform:scale(.95);
   border-color:var(--green);
@@ -364,9 +396,17 @@ function renderAdder(container,depth){
 
   if(openAdder===container.id){
     html+='<div class="type-menu" style="padding-left:calc(10px + '+depth+' * var(--indent))">';
+    const types={
+      string:{label:'String',icon:'"'},
+      number:{label:'Number',icon:'#'},
+      boolean:{label:'Boolean',icon:'◐'},
+      null:{label:'Null',icon:'∅'},
+      object:{label:'Object',icon:'{}'},
+      array:{label:'Array',icon:'[]'}
+    };
     ['string','number','boolean','null','object','array'].forEach(t=>{
-      const label=t==='object'?'Object {}':t==='array'?'Array []':t[0].toUpperCase()+t.slice(1);
-      html+='<button data-type="'+t+'" data-parent="'+container.id+'">'+label+'</button>';
+      const x=types[t];
+      html+='<button data-type="'+t+'" data-parent="'+container.id+'"><span class="type-icon '+t+'" aria-hidden="true">'+x.icon+'</span><span>'+x.label+'</span></button>';
     });
     html+='</div>';
   }
