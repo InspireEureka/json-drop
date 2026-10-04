@@ -29,7 +29,7 @@ function bindObject(o){
   o.querySelector(':scope>.children>.add-property')?.addEventListener('click',e=>{
     e.stopPropagation();
     const p=makeProperty();
-    e.currentTarget.after(p);
+    e.currentTarget.before(p);
     editProperty(p);
   });
 }
@@ -50,7 +50,8 @@ function makeProperty(){
   return p;
 }
 
-document.querySelector('#add').onclick=()=>root.querySelector(':scope>.children').append(make());
+function appendContent(children,node){const add=children.querySelector(':scope>.add-property');if(add)children.insertBefore(node,add);else children.append(node)}
+document.querySelector('#add').onclick=()=>appendContent(root.querySelector(':scope>.children'),make());
 root.querySelector(':scope>.card').addEventListener('click',()=>root.classList.toggle('collapsed'));
 bindObject(root);
 
@@ -236,7 +237,7 @@ function end(e){
   if(t?.mode==='inside'){
     moveWithFlip(()=>{
       t.o.classList.remove('collapsed');
-      t.o.querySelector(':scope>.children').append(drag);
+      appendContent(t.o.querySelector(':scope>.children'),drag);
     });
   }else if(!t){
     restoreOrigin();
