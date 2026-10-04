@@ -181,12 +181,12 @@ main{
   border:1px solid #343d49;
   font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;
 }
-.type-icon.string{color:var(--json-string)}
-.type-icon.number{color:var(--json-number)}
-.type-icon.boolean{color:var(--json-boolean)}
-.type-icon.null{color:var(--json-null)}
-.type-icon.object{color:var(--json-key)}
-.type-icon.array{color:#c586c0}
+.type-icon.string,.type-label.string{color:var(--json-string)}
+.type-icon.number,.type-label.number{color:var(--json-number)}
+.type-icon.boolean,.type-label.boolean{color:var(--json-boolean)}
+.type-icon.null,.type-label.null{color:var(--json-null)}
+.type-icon.object,.type-label.object{color:var(--json-key)}
+.type-icon.array,.type-label.array{color:#c586c0}
 .type-menu button:active{
   transform:scale(.95);
   border-color:var(--green);
@@ -424,7 +424,7 @@ function renderAdder(container,depth){
     };
     ['string','number','boolean','null','object','array'].forEach(t=>{
       const x=types[t];
-      html+='<button data-type="'+t+'" data-parent="'+container.id+'"><span class="type-icon '+t+'" aria-hidden="true">'+x.icon+'</span><span>'+x.label+'</span></button>';
+      html+='<button data-type="'+t+'" data-parent="'+container.id+'"><span class="type-icon '+t+'" aria-hidden="true">'+x.icon+'</span><span class="type-label '+t+'">'+x.label+'</span></button>';
     });
     html+='</div>';
   }
