@@ -45,14 +45,26 @@ main{
 }
 .top b{font-size:20px;margin-right:auto}
 .top button{
+  width:44px;
+  height:44px;
   min-height:44px;
   border:1px solid #404958;
   border-radius:12px;
   background:#1b2029;
   color:var(--text);
-  padding:0 13px;
-  font:600 14px system-ui,-apple-system,sans-serif;
+  padding:0;
+  display:grid;
+  place-items:center;
   transition:transform .06s ease,background .06s ease,border-color .06s ease;
+}
+.top button svg{
+  width:20px;
+  height:20px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 .top button:active{transform:scale(.96);background:#272e39;border-color:#596577}
 .top .clear{color:var(--danger)}
@@ -67,7 +79,7 @@ main{
   gap:4px;
   padding-right:8px;
   white-space:nowrap;
-  font:17px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font:20px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 .line:hover{background:#ffffff05}
 .line:focus-within{background:#ffffff07}
@@ -210,9 +222,9 @@ main{
   main{padding:14px 8px 72px}
   .top{gap:6px;margin-bottom:12px}
   .top b{font-size:19px}
-  .top button{min-height:44px;padding:0 10px;font-size:13px}
+  .top button{width:44px;height:44px;min-height:44px;padding:0}
   :root{--indent:16px}
-  .line{min-height:44px;font-size:17px}
+  .line{min-height:46px;font-size:20px}
   .type-menu button{min-height:46px;font-size:14px}
   .add-btn{min-height:44px;font-size:15px}
 }
@@ -222,9 +234,15 @@ main{
 <main>
   <div class="top">
     <b>JSON Drop</b>
-    <button id="copy">Copia</button>
-    <button id="download">Scarica</button>
-    <button class="clear" id="clear">Clear</button>
+    <button id="copy" aria-label="Copia JSON" title="Copia JSON">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+    </button>
+    <button id="download" aria-label="Scarica JSON" title="Scarica JSON">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+    </button>
+    <button class="clear" id="clear" aria-label="Svuota JSON" title="Svuota JSON">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="m7 7 1 13h8l1-13"></path><path d="M10 11v5M14 11v5"></path></svg>
+    </button>
   </div>
   <div class="editor" id="editor" aria-label="Editor JSON visuale"></div>
   <div class="hint">Tocca testo e valori per modificarli. La sintassi resta gestita dall'app.</div>
