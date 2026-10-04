@@ -417,16 +417,35 @@ function bindEditor(){
     if(!p)return;
     const old=p.key;
 
+    const commitKey=()=>{
+      const v=el.textContent.trim();
+      p.key=v||old;
+      if(!v){render();return false}
+      return true;
+    };
+
     el.onkeydown=e=>{
-      if(e.key==='Enter'){e.preventDefault();el.blur()}
+      if(e.key==='Enter'){
+        e.preventDefault();
+        if(!commitKey())return;
+        if(['string','number','boolean'].includes(p.value.type)){
+          const next=editor.querySelector('[data-edit-value="'+p.value.id+'"]');
+          if(next){
+            next.focus();
+            const range=document.createRange();
+            range.selectNodeContents(next);
+            const sel=getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }else{
+          el.blur();
+        }
+      }
       if(e.key==='Escape'){e.preventDefault();el.textContent=old;el.blur()}
     };
 
-    el.onblur=()=>{
-      const v=el.textContent.trim();
-      p.key=v||old;
-      if(!v)render();
-    };
+    el.onblur=()=>{commitKey()};
   });
 
   editor.querySelectorAll('[data-edit-value]').forEach(el=>{
@@ -470,7 +489,7 @@ function bindEditor(){
 }
 
 function validNumber(s){
-  return /^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/.test(String(s).trim());
+  return /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(String(s).trim());
 }
 
 function flash(msg){
