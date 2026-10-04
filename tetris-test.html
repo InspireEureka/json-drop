@@ -2,21 +2,20 @@
 <style>
 :root{color-scheme:dark;--bg:#0b0c0f;--panel:#151820;--card:#20242e;--line:#596170;--text:#fff;--muted:#aeb5c1;--green:#65ff8f;--accent:#9db2ff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,sans-serif;overscroll-behavior:none}main{max-width:620px;margin:auto;padding:18px 14px 80px}
-.top b{font-size:18px}.top small{display:block;color:var(--muted);margin:3px 0 14px}.add{min-height:48px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:13px;padding:0 16px;font:inherit;margin-bottom:12px}
+.top b{font-size:18px}.top small{display:block;color:var(--muted);margin:3px 0 14px}
 .object{margin:5px 0}.card{transition:transform .18s ease,background .18s ease}.object.swiping>.card{transition:none}.object.rename-ready>.card{background:#29352e}.card{height:54px;border:1px solid var(--line);border-radius:12px;background:var(--card);display:flex;align-items:center;gap:9px;padding:0 11px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .icon{width:30px;height:30px;border:1px solid var(--green);border-radius:7px;display:grid;place-items:center;color:var(--green);font:700 12px ui-monospace,monospace}.name{flex:1;min-width:0;color:var(--green);font:700 16px system-ui;padding:10px 4px}.rename{position:fixed;inset:0;background:#0009;z-index:200;display:grid;place-items:center;padding:24px}.rename-box{width:min(420px,100%);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;animation:pop .16s ease}.rename-actions{display:flex;gap:10px;margin-top:10px}.rename-actions button{flex:1;height:46px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-size:18px}@keyframes pop{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}.rename-box input{width:100%;height:52px;border:1px solid var(--green);border-radius:10px;background:var(--panel);color:var(--green);font:700 18px system-ui;padding:0 12px;outline:0}.brace{color:var(--muted);font:700 16px ui-monospace,monospace}
 .children{margin-left:25px;padding-left:10px;border-left:1px solid #39404c;min-height:4px}.object.collapsed>.children{display:none}.root>.card{background:#252a35}.root>.children{margin-left:17px}
 .object.source-drag{pointer-events:none}.object.source-drag>.card{opacity:.08;border-style:dashed}.object.source-drag>.children{display:none}.drag-ghost{position:fixed;z-index:100;pointer-events:none;opacity:.94;filter:drop-shadow(0 16px 25px #000a);margin:0;will-change:transform}.drag-ghost>.children{display:none}
-.card.drop-inside{border-color:var(--accent);background:#28304a;box-shadow:inset 0 0 0 1px var(--accent)}.add-property{width:100%;height:38px;margin:5px 0;border:1px dashed #4a5260;border-radius:10px;background:transparent;color:var(--muted);font:14px system-ui}.property{height:46px;margin:5px 0;border:1px solid #3d4450;border-radius:10px;background:#171a21;display:flex;align-items:center;gap:7px;padding:0 12px;touch-action:manipulation}.prop-key{color:var(--green);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-colon{color:var(--muted)}.prop-value{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-edit .rename-box{display:grid;gap:9px}.prop-edit label{font-size:12px;color:var(--muted)}
+.card.drop-inside{border-color:var(--accent);background:#28304a;box-shadow:inset 0 0 0 1px var(--accent)}.add-property{width:100%;height:38px;margin:5px 0;border:1px dashed #4a5260;border-radius:10px;background:transparent;color:var(--muted);font:14px system-ui}.property{height:46px;margin:5px 0;border:1px solid #3d4450;border-radius:10px;background:#171a21;display:flex;align-items:center;gap:7px;padding:0 12px;touch-action:manipulation}.prop-key{color:var(--green);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-colon{color:var(--muted)}.prop-value{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-type{margin-left:auto;color:var(--muted);font:11px ui-monospace,monospace}.prop-edit .rename-box{display:grid;gap:9px}.prop-edit label{font-size:12px;color:var(--muted)}.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.type-grid button{height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:13px system-ui}.type-grid button.active{border-color:var(--green);color:var(--green);background:#193022}.value-wrap.hidden{display:none}
 .note{text-align:center;color:var(--muted);font-size:11px;margin-top:12px}
 </style></head><body><main>
 <div class="top"><b>JSON Drop</b><small>Tap = apri/chiudi · swipe a sinistra = rinomina · tieni e trascina = sposta</small></div>
-<button class="add" id="add">+ Object {}</button>
 <section class="object root" id="root"><div class="card"><span class="icon">{}</span><span class="name">ROOT</span><span class="brace">{</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div></section>
 <div class="note">Durante il drag reagisce solo la destinazione sotto il dito.</div>
 </main><script>
 const root=document.querySelector('#root');
-let seq=0,propSeq=0,drag=null,ghost=null,origin=null,originNext=null,timer=null,sx=0,sy=0,dx=0,dy=0,armed=false,current=null,lastX=0,lastY=0,lastTarget=null,raf=0,pendingX=0,pendingY=0,lastSwapY=null;
+let propSeq=0,drag=null,ghost=null,origin=null,originNext=null,timer=null,sx=0,sy=0,dx=0,dy=0,armed=false,current=null,lastX=0,lastY=0,lastTarget=null,raf=0,pendingX=0,pendingY=0,lastSwapY=null;
 
 function bindObject(o){
   const card=o.querySelector(':scope>.card');
@@ -26,32 +25,69 @@ function bindObject(o){
     card.addEventListener('touchend',end,{passive:false});
     card.addEventListener('touchcancel',cancel,{passive:false});
   }
-  o.querySelector(':scope>.children>.add-property')?.addEventListener('click',e=>{
+  bindAddButton(o.querySelector(':scope>.children'));
+}
+
+function bindAddButton(children){
+  const add=children?.querySelector(':scope>.add-property');
+  if(!add||add.dataset.bound)return;
+  add.dataset.bound='1';
+  add.addEventListener('click',e=>{
     e.stopPropagation();
-    const p=makeProperty();
-    e.currentTarget.before(p);
-    editProperty(p);
+    createProperty(children);
   });
 }
 
-function make(){
+function appendContent(children,node){
+  const add=children.querySelector(':scope>.add-property');
+  if(add)children.insertBefore(node,add);
+  else children.append(node);
+}
+
+function defaultValue(type){
+  if(type==='number')return '0';
+  if(type==='boolean')return 'true';
+  if(type==='null')return 'null';
+  return 'value';
+}
+
+function makePrimitive(key,type,value){
+  const p=document.createElement('div');
+  p.className='property';
+  p.dataset.type=type;
+  p.innerHTML='<span class="prop-key"></span><span class="prop-colon">:</span><span class="prop-value"></span><span class="prop-type"></span>';
+  p.querySelector('.prop-key').textContent=key;
+  p.querySelector('.prop-value').textContent=value;
+  p.querySelector('.prop-type').textContent=type;
+  p.addEventListener('click',()=>editPrimitive(p));
+  return p;
+}
+
+function makeObjectProperty(key){
   const o=document.createElement('section');
   o.className='object';
-  o.innerHTML='<div class="card"><span class="icon">{}</span><span class="name">Object '+(++seq)+'</span><span class="brace">{</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div>';
+  o.dataset.type='object';
+  o.innerHTML='<div class="card"><span class="icon">{}</span><span class="name"></span><span class="prop-colon">:</span><span class="brace">{}</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div>';
+  o.querySelector(':scope>.card>.name').textContent=key;
   bindObject(o);
   return o;
 }
 
-function makeProperty(){
-  const p=document.createElement('div');
-  p.className='property';
-  p.innerHTML='<span class="prop-key">key'+(++propSeq)+'</span><span class="prop-colon">:</span><span class="prop-value">value</span>';
-  p.addEventListener('click',()=>editProperty(p));
-  return p;
+function createProperty(children){
+  const key='key'+(++propSeq);
+  openPropertyEditor({
+    key,
+    type:'string',
+    value:'value',
+    onSave:data=>{
+      const node=data.type==='object'
+        ? makeObjectProperty(data.key)
+        : makePrimitive(data.key,data.type,data.value);
+      appendContent(children,node);
+    }
+  });
 }
 
-function appendContent(children,node){const add=children.querySelector(':scope>.add-property');if(add)children.insertBefore(node,add);else children.append(node)}
-document.querySelector('#add').onclick=()=>appendContent(root.querySelector(':scope>.children'),make());
 root.querySelector(':scope>.card').addEventListener('click',()=>root.classList.toggle('collapsed'));
 bindObject(root);
 
@@ -91,7 +127,6 @@ function moveWithFlip(mutator){
       p=p.parentElement?.closest('.object');
     }
     if(nested)return;
-
     o.style.willChange='transform';
     const a=o.animate(
       [{transform:'translate3d('+x+'px,'+y+'px,0)'},{transform:'translate3d(0,0,0)'}],
@@ -108,7 +143,6 @@ function targetAt(x,y){
     .find(card=>card&&!card.closest('.drag-ghost')&&!card.closest('.source-drag'));
 
   if(!card){lastTarget=null;return null}
-
   const o=card.parentElement;
   if(o===drag||drag?.contains(o)){lastTarget=null;return null}
 
@@ -167,7 +201,6 @@ function begin(o){
   ghost.style.width=r.width+'px';
   ghost.style.transform='translate3d('+r.left+'px,'+r.top+'px,0)';
   document.body.append(ghost);
-
   o.classList.add('source-drag');
 }
 
@@ -199,7 +232,7 @@ function move(e){
       setTimeout(()=>{
         o.querySelector(':scope>.card').style.transform='';
         o.classList.remove('swiping','rename-ready');
-        rename(o);
+        renameObjectProperty(o);
       },120);
       return;
     }
@@ -221,6 +254,7 @@ function restoreOrigin(){
 function end(e){
   e.preventDefault();
   clearTimeout(timer);timer=null;
+
   if(!armed||!drag){
     const tapped=current&&Math.hypot(lastX-sx,lastY-sy)<10;
     const tappedObject=current;
@@ -271,28 +305,47 @@ function reset(){
   armed=false;lastSwapY=null;
 }
 
-function editProperty(p){
-  if(!p)return;
+function openPropertyEditor({key,type,value,onSave}){
   const layer=document.createElement('div');
   layer.className='rename prop-edit';
-  layer.innerHTML='<div class="rename-box"><label>Key</label><input class="key-input" aria-label="Key"><label>Value</label><input class="value-input" aria-label="Value"><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
-  const keyInput=layer.querySelector('.key-input'),valueInput=layer.querySelector('.value-input');
-  const key=p.querySelector('.prop-key'),value=p.querySelector('.prop-value');
-  keyInput.value=key.textContent;
-  valueInput.value=value.textContent;
+  layer.innerHTML='<div class="rename-box"><label>Key</label><input class="key-input" aria-label="Key"><label>Value type</label><div class="type-grid"><button data-type="string">String</button><button data-type="number">Number</button><button data-type="boolean">Boolean</button><button data-type="null">Null</button><button data-type="object">Object {}</button></div><div class="value-wrap"><label>Value</label><input class="value-input" aria-label="Value"></div><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
+
+  const keyInput=layer.querySelector('.key-input'),valueInput=layer.querySelector('.value-input'),wrap=layer.querySelector('.value-wrap');
+  let selected=type||'string';
+  keyInput.value=key||'';
+  valueInput.value=value??defaultValue(selected);
+
+  const sync=()=>{
+    layer.querySelectorAll('.type-grid button').forEach(b=>b.classList.toggle('active',b.dataset.type===selected));
+    wrap.classList.toggle('hidden',selected==='object'||selected==='null');
+    if(selected==='null')valueInput.value='null';
+    else if(selected==='boolean'&&!['true','false'].includes(valueInput.value))valueInput.value='true';
+    else if(selected==='number'&&!valueInput.value.trim())valueInput.value='0';
+  };
+
+  layer.querySelectorAll('.type-grid button').forEach(b=>b.onclick=()=>{
+    selected=b.dataset.type;
+    valueInput.value=defaultValue(selected);
+    sync();
+  });
+
   document.body.append(layer);
+  sync();
   setTimeout(()=>{keyInput.focus();keyInput.select()},0);
+
   let closed=false;
   const close=save=>{
     if(closed)return;
-    closed=true;
     if(save){
-      const k=keyInput.value.trim(),v=valueInput.value.trim();
-      if(k)key.textContent=k;
-      value.textContent=v;
-    }
+      const k=keyInput.value.trim();
+      if(!k)return;
+      closed=true;
+      const v=selected==='null'?'null':valueInput.value.trim();
+      onSave({key:k,type:selected,value:v});
+    }else closed=true;
     layer.remove();
   };
+
   layer.querySelector('.save').onclick=()=>close(true);
   layer.querySelector('.cancel').onclick=()=>close(false);
   layer.addEventListener('pointerdown',e=>{if(e.target===layer)close(false)});
@@ -302,11 +355,30 @@ function editProperty(p){
   });
 }
 
-function rename(o){
+function editPrimitive(p){
+  openPropertyEditor({
+    key:p.querySelector('.prop-key').textContent,
+    type:p.dataset.type||'string',
+    value:p.querySelector('.prop-value').textContent,
+    onSave:data=>{
+      if(data.type==='object'){
+        const o=makeObjectProperty(data.key);
+        p.replaceWith(o);
+        return;
+      }
+      p.dataset.type=data.type;
+      p.querySelector('.prop-key').textContent=data.key;
+      p.querySelector('.prop-value').textContent=data.value;
+      p.querySelector('.prop-type').textContent=data.type;
+    }
+  });
+}
+
+function renameObjectProperty(o){
   if(!o)return;
   const layer=document.createElement('div');
   layer.className='rename';
-  layer.innerHTML='<div class="rename-box"><input aria-label="Nuovo nome"><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
+  layer.innerHTML='<div class="rename-box"><input aria-label="Nuova key"><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
   const input=layer.querySelector('input'),label=o.querySelector(':scope>.card>.name');
   input.value=label.textContent;
   document.body.append(layer);
@@ -316,7 +388,8 @@ function rename(o){
     if(closed)return;
     closed=true;
     if(save){const v=input.value.trim();if(v)label.textContent=v}
-    layer.remove();reset();
+    layer.remove();
+    reset();
   };
   layer.querySelector('.save').onclick=()=>close(true);
   layer.querySelector('.cancel').onclick=()=>close(false);
