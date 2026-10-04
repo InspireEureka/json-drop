@@ -7,7 +7,7 @@
 .icon{width:30px;height:30px;border:1px solid var(--green);border-radius:7px;display:grid;place-items:center;color:var(--green);font:700 12px ui-monospace,monospace}.name{flex:1;min-width:0;color:var(--green);font:700 16px system-ui;padding:10px 4px}.rename{position:fixed;inset:0;background:#0009;z-index:200;display:grid;place-items:center;padding:24px}.rename-box{width:min(420px,100%);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;animation:pop .16s ease}.rename-actions{display:flex;gap:10px;margin-top:10px}.rename-actions button{flex:1;height:46px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-size:18px}@keyframes pop{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}.rename-box input{width:100%;height:52px;border:1px solid var(--green);border-radius:10px;background:var(--panel);color:var(--green);font:700 18px system-ui;padding:0 12px;outline:0}.brace{color:var(--muted);font:700 16px ui-monospace,monospace}
 .children{margin-left:25px;padding-left:10px;border-left:1px solid #39404c;min-height:4px}.object.collapsed>.children{display:none}.root>.card{background:#252a35}.root>.children{margin-left:17px}
 .object.source-drag{pointer-events:none}.object.source-drag>.card{opacity:.08;border-style:dashed}.object.source-drag>.children{display:none}.drag-ghost{position:fixed;z-index:100;pointer-events:none;opacity:.94;filter:drop-shadow(0 16px 25px #000a);margin:0;will-change:transform}.drag-ghost>.children{display:none}
-.card.drop-inside{border-color:var(--accent);background:#28304a;box-shadow:inset 0 0 0 1px var(--accent)}.add-property{width:100%;height:38px;margin:5px 0;border:1px dashed #4a5260;border-radius:10px;background:transparent;color:var(--muted);font:14px system-ui}.property{height:46px;margin:5px 0;border:1px solid #3d4450;border-radius:10px;background:#171a21;display:flex;align-items:center;gap:7px;padding:0 12px;touch-action:manipulation}.prop-key{color:var(--green);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-colon{color:var(--muted)}.prop-value{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-type{margin-left:auto;color:var(--muted);font:11px ui-monospace,monospace}.prop-edit .rename-box{display:grid;gap:9px}.prop-edit label{font-size:12px;color:var(--muted)}.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.type-grid button{height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:13px system-ui}.type-grid button.active{border-color:var(--green);color:var(--green);background:#193022}.value-wrap.hidden{display:none}
+.card.drop-inside{border-color:var(--accent);background:#28304a;box-shadow:inset 0 0 0 1px var(--accent)}.add-property,.add-item{width:100%;height:38px;margin:5px 0;border:1px dashed #4a5260;border-radius:10px;background:transparent;color:var(--muted);font:14px system-ui}.property{height:46px;margin:5px 0;border:1px solid #3d4450;border-radius:10px;background:#171a21;display:flex;align-items:center;gap:7px;padding:0 12px;touch-action:manipulation}.prop-key{color:var(--green);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-colon{color:var(--muted)}.prop-value{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-type{margin-left:auto;color:var(--muted);font:11px ui-monospace,monospace}.prop-edit .rename-box{display:grid;gap:9px}.prop-edit label{font-size:12px;color:var(--muted)}.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.type-grid button{height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:13px system-ui}.type-grid button.active{border-color:var(--green);color:var(--green);background:#193022}.value-wrap.hidden{display:none}.array-node>.card .icon{border-color:var(--accent);color:var(--accent)}.array-item .prop-value{flex:1}.array-item .prop-type{margin-left:auto}
 .note{text-align:center;color:var(--muted);font-size:11px;margin-top:12px}
 </style></head><body><main>
 <div class="top"><b>JSON Drop</b><small>Tap = apri/chiudi · swipe a sinistra = rinomina · tieni e trascina = sposta</small></div>
@@ -29,17 +29,18 @@ function bindObject(o){
 }
 
 function bindAddButton(children){
-  const add=children?.querySelector(':scope>.add-property');
+  const add=children?.querySelector(':scope>.add-property,:scope>.add-item');
   if(!add||add.dataset.bound)return;
   add.dataset.bound='1';
   add.addEventListener('click',e=>{
     e.stopPropagation();
-    createProperty(children);
+    if(e.currentTarget.classList.contains('add-item'))createItem(children);
+    else createProperty(children);
   });
 }
 
 function appendContent(children,node){
-  const add=children.querySelector(':scope>.add-property');
+  const add=children.querySelector(':scope>.add-property,:scope>.add-item');
   if(add)children.insertBefore(node,add);
   else children.append(node);
 }
@@ -73,6 +74,47 @@ function makeObjectProperty(key){
   return o;
 }
 
+function makeArrayProperty(key){
+  const a=document.createElement('section');
+  a.className='object array-node';
+  a.dataset.type='array';
+  a.innerHTML='<div class="card"><span class="icon">[]</span><span class="name"></span><span class="prop-colon">:</span><span class="brace">[]</span></div><div class="children"><button class="add-item" type="button">+ Item</button></div>';
+  a.querySelector(':scope>.card>.name').textContent=key;
+  bindObject(a);
+  return a;
+}
+
+function makeArrayPrimitive(type,value){
+  const p=document.createElement('div');
+  p.className='property array-item';
+  p.dataset.type=type;
+  p.innerHTML='<span class="prop-value"></span><span class="prop-type"></span>';
+  p.querySelector('.prop-value').textContent=value;
+  p.querySelector('.prop-type').textContent=type;
+  p.addEventListener('click',()=>editArrayPrimitive(p));
+  return p;
+}
+
+function makeObjectItem(){
+  const o=document.createElement('section');
+  o.className='object';
+  o.dataset.type='object';
+  o.dataset.arrayItem='1';
+  o.innerHTML='<div class="card"><span class="icon">{}</span><span class="name">Object</span><span class="brace">{}</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div>';
+  bindObject(o);
+  return o;
+}
+
+function makeArrayItem(){
+  const a=document.createElement('section');
+  a.className='object array-node';
+  a.dataset.type='array';
+  a.dataset.arrayItem='1';
+  a.innerHTML='<div class="card"><span class="icon">[]</span><span class="name">Array</span><span class="brace">[]</span></div><div class="children"><button class="add-item" type="button">+ Item</button></div>';
+  bindObject(a);
+  return a;
+}
+
 function createProperty(children){
   const key='key'+(++propSeq);
   openPropertyEditor({
@@ -82,7 +124,24 @@ function createProperty(children){
     onSave:data=>{
       const node=data.type==='object'
         ? makeObjectProperty(data.key)
-        : makePrimitive(data.key,data.type,data.value);
+        : data.type==='array'
+          ? makeArrayProperty(data.key)
+          : makePrimitive(data.key,data.type,data.value);
+      appendContent(children,node);
+    }
+  });
+}
+
+function createItem(children){
+  openItemEditor({
+    type:'string',
+    value:'value',
+    onSave:data=>{
+      const node=data.type==='object'
+        ? makeObjectItem()
+        : data.type==='array'
+          ? makeArrayItem()
+          : makeArrayPrimitive(data.type,data.value);
       appendContent(children,node);
     }
   });
@@ -308,7 +367,7 @@ function reset(){
 function openPropertyEditor({key,type,value,onSave}){
   const layer=document.createElement('div');
   layer.className='rename prop-edit';
-  layer.innerHTML='<div class="rename-box"><label>Key</label><input class="key-input" aria-label="Key"><label>Value type</label><div class="type-grid"><button data-type="string">String</button><button data-type="number">Number</button><button data-type="boolean">Boolean</button><button data-type="null">Null</button><button data-type="object">Object {}</button></div><div class="value-wrap"><label>Value</label><input class="value-input" aria-label="Value"></div><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
+  layer.innerHTML='<div class="rename-box"><label>Key</label><input class="key-input" aria-label="Key"><label>Value type</label><div class="type-grid"><button data-type="string">String</button><button data-type="number">Number</button><button data-type="boolean">Boolean</button><button data-type="null">Null</button><button data-type="object">Object {}</button><button data-type="array">Array []</button></div><div class="value-wrap"><label>Value</label><input class="value-input" aria-label="Value"></div><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
 
   const keyInput=layer.querySelector('.key-input'),valueInput=layer.querySelector('.value-input'),wrap=layer.querySelector('.value-wrap');
   let selected=type||'string';
@@ -317,7 +376,7 @@ function openPropertyEditor({key,type,value,onSave}){
 
   const sync=()=>{
     layer.querySelectorAll('.type-grid button').forEach(b=>b.classList.toggle('active',b.dataset.type===selected));
-    wrap.classList.toggle('hidden',selected==='object'||selected==='null');
+    wrap.classList.toggle('hidden',selected==='object'||selected==='array'||selected==='null');
     if(selected==='null')valueInput.value='null';
     else if(selected==='boolean'&&!['true','false'].includes(valueInput.value))valueInput.value='true';
     else if(selected==='number'&&!valueInput.value.trim())valueInput.value='0';
@@ -362,12 +421,72 @@ function editPrimitive(p){
     value:p.querySelector('.prop-value').textContent,
     onSave:data=>{
       if(data.type==='object'){
-        const o=makeObjectProperty(data.key);
-        p.replaceWith(o);
+        p.replaceWith(makeObjectProperty(data.key));
+        return;
+      }
+      if(data.type==='array'){
+        p.replaceWith(makeArrayProperty(data.key));
         return;
       }
       p.dataset.type=data.type;
       p.querySelector('.prop-key').textContent=data.key;
+      p.querySelector('.prop-value').textContent=data.value;
+      p.querySelector('.prop-type').textContent=data.type;
+    }
+  });
+}
+
+function openItemEditor({type,value,onSave}){
+  const layer=document.createElement('div');
+  layer.className='rename prop-edit';
+  layer.innerHTML='<div class="rename-box"><label>Item type</label><div class="type-grid"><button data-type="string">String</button><button data-type="number">Number</button><button data-type="boolean">Boolean</button><button data-type="null">Null</button><button data-type="object">Object {}</button><button data-type="array">Array []</button></div><div class="value-wrap"><label>Value</label><input class="value-input" aria-label="Value"></div><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
+  const valueInput=layer.querySelector('.value-input'),wrap=layer.querySelector('.value-wrap');
+  let selected=type||'string';
+  valueInput.value=value??defaultValue(selected);
+
+  const sync=()=>{
+    layer.querySelectorAll('.type-grid button').forEach(b=>b.classList.toggle('active',b.dataset.type===selected));
+    wrap.classList.toggle('hidden',selected==='object'||selected==='array'||selected==='null');
+    if(selected==='null')valueInput.value='null';
+    else if(selected==='boolean'&&!['true','false'].includes(valueInput.value))valueInput.value='true';
+    else if(selected==='number'&&!valueInput.value.trim())valueInput.value='0';
+  };
+
+  layer.querySelectorAll('.type-grid button').forEach(b=>b.onclick=()=>{
+    selected=b.dataset.type;
+    valueInput.value=defaultValue(selected);
+    sync();
+  });
+
+  document.body.append(layer);
+  sync();
+  if(!wrap.classList.contains('hidden'))setTimeout(()=>{valueInput.focus();valueInput.select()},0);
+
+  let closed=false;
+  const close=save=>{
+    if(closed)return;
+    closed=true;
+    if(save){
+      const v=selected==='null'?'null':valueInput.value.trim();
+      onSave({type:selected,value:v});
+    }
+    layer.remove();
+  };
+
+  layer.querySelector('.save').onclick=()=>close(true);
+  layer.querySelector('.cancel').onclick=()=>close(false);
+  layer.addEventListener('pointerdown',e=>{if(e.target===layer)close(false)});
+  valueInput.addEventListener('keydown',e=>{if(e.key==='Enter')close(true);if(e.key==='Escape')close(false)});
+}
+
+function editArrayPrimitive(p){
+  openItemEditor({
+    type:p.dataset.type||'string',
+    value:p.querySelector('.prop-value').textContent,
+    onSave:data=>{
+      if(data.type==='object'){p.replaceWith(makeObjectItem());return}
+      if(data.type==='array'){p.replaceWith(makeArrayItem());return}
+      p.dataset.type=data.type;
       p.querySelector('.prop-value').textContent=data.value;
       p.querySelector('.prop-type').textContent=data.type;
     }
