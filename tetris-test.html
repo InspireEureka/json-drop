@@ -218,6 +218,49 @@ main{
   transition:.1s ease;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.import-sheet{
+  position:fixed;
+  inset:0;
+  z-index:300;
+  background:#0008;
+  display:grid;
+  place-items:end center;
+}
+.import-card{
+  width:min(720px,100%);
+  background:#11151c;
+  border:1px solid #303844;
+  border-radius:18px 18px 0 0;
+  padding:14px;
+}
+.import-card textarea{
+  width:100%;
+  min-height:220px;
+  resize:vertical;
+  border:1px solid #3d4653;
+  border-radius:12px;
+  background:#0b0e13;
+  color:var(--text);
+  padding:12px;
+  outline:none;
+  font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+.import-card textarea:focus{border-color:var(--json-key)}
+.import-actions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+.import-actions button{
+  flex:1;
+  min-height:46px;
+  border:1px solid #404958;
+  border-radius:12px;
+  background:#1a2029;
+  color:var(--text);
+  font:600 14px system-ui,-apple-system,sans-serif;
+}
+.import-actions .primary{border-color:var(--json-key);color:var(--json-key)}
 @media(max-width:520px){
   main{padding:14px 8px 72px}
   .top{gap:6px;margin-bottom:12px}
@@ -638,8 +681,35 @@ const importButton=document.querySelector('#import');
 const importFile=document.querySelector('#import-file');
 
 importButton.onclick=()=>{
-  importFile.value='';
-  importFile.click();
+  const layer=document.createElement('div');
+  layer.className='import-sheet';
+  layer.innerHTML='<div class="import-card"><textarea placeholder="Incolla qui il JSON…"></textarea><div class="import-actions"><button class="file">File</button><button class="cancel">Annulla</button><button class="primary paste">Importa testo</button></div></div>';
+  const area=layer.querySelector('textarea');
+
+  const close=()=>layer.remove();
+
+  layer.querySelector('.file').onclick=()=>{
+    close();
+    importFile.value='';
+    importFile.click();
+  };
+
+  layer.querySelector('.cancel').onclick=close;
+
+  layer.querySelector('.paste').onclick=()=>{
+    try{
+      const value=JSON.parse(area.value);
+      importJSONValue(value);
+      close();
+      flash('JSON importato');
+    }catch(err){
+      flash('JSON non valido: '+(err?.message||String(err)));
+    }
+  };
+
+  layer.addEventListener('pointerdown',e=>{if(e.target===layer)close()});
+  document.body.append(layer);
+  setTimeout(()=>area.focus(),0);
 };
 
 importFile.onchange=async()=>{
