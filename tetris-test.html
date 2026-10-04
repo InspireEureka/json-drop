@@ -71,6 +71,10 @@ main{
 .editor{
   padding:4px 0 16px;
   overflow-x:auto;
+  overflow-y:visible;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+  touch-action:pan-x pan-y;
 }
 .line{
   min-height:38px;
@@ -79,6 +83,8 @@ main{
   gap:4px;
   padding-right:8px;
   white-space:nowrap;
+  width:max-content;
+  min-width:100%;
   font:16px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 .line:hover{background:#ffffff05}
@@ -100,6 +106,8 @@ main{
 .boolean{color:var(--json-boolean)}
 .null{color:var(--json-null)}
 .editable{
+  flex:0 0 auto;
+  max-width:none;
   padding:4px 3px;
   border-radius:6px;
   border-bottom:1px solid transparent;
@@ -136,6 +144,8 @@ main{
 .add-line{
   min-height:42px;
   display:flex;
+  width:max-content;
+  min-width:100%;
   align-items:center;
   padding-right:8px;
 }
@@ -153,6 +163,8 @@ main{
 .add-btn:hover{border-color:#536071;color:var(--text)}
 .type-menu{
   display:flex;
+  width:max-content;
+  min-width:100%;
   flex-wrap:wrap;
   gap:8px;
   padding:6px 8px 10px 0;
