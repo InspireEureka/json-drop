@@ -1,645 +1,520 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>JSON Drop · Touch Tree</title>
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>JSON Drop · Live JSON</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0c0f;--panel:#151820;--card:#20242e;--line:#596170;--text:#fff;--muted:#aeb5c1;--green:#65ff8f;--accent:#9db2ff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,sans-serif;overscroll-behavior:none}main{max-width:620px;margin:auto;padding:18px 14px 80px}
-.top b{font-size:18px}.top small{display:block;color:var(--muted);margin:3px 0 14px}
-.object{margin:5px 0}.card{transition:transform .18s ease,background .18s ease}.object.swiping>.card{transition:none}.object.rename-ready>.card{background:#29352e}.card{height:54px;border:1px solid var(--line);border-radius:12px;background:var(--card);display:flex;align-items:center;gap:9px;padding:0 11px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-.icon{width:30px;height:30px;border:1px solid var(--green);border-radius:7px;display:grid;place-items:center;color:var(--green);font:700 12px ui-monospace,monospace}.name{flex:1;min-width:0;color:var(--green);font:700 16px system-ui;padding:10px 4px}.rename{position:fixed;inset:0;background:#0009;z-index:200;display:grid;place-items:center;padding:24px}.rename-box{width:min(420px,100%);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;animation:pop .16s ease}.rename-actions{display:flex;gap:10px;margin-top:10px}.rename-actions button{flex:1;height:46px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-size:18px}@keyframes pop{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}.rename-box input{width:100%;height:52px;border:1px solid var(--green);border-radius:10px;background:var(--panel);color:var(--green);font:700 18px system-ui;padding:0 12px;outline:0}.brace{color:var(--muted);font:700 16px ui-monospace,monospace}
-.children{margin-left:25px;padding-left:10px;border-left:1px solid #39404c;min-height:4px}.object.collapsed>.children{display:none}.root>.card{background:#252a35}.root>.children{margin-left:17px}
-.object.source-drag{pointer-events:none}.object.source-drag>.card{opacity:.08;border-style:dashed}.object.source-drag>.children{display:none}.drag-ghost{position:fixed;z-index:100;pointer-events:none;opacity:.94;filter:drop-shadow(0 16px 25px #000a);margin:0;will-change:transform}.drag-ghost>.children{display:none}
-.card.drop-inside{border-color:var(--accent);background:#28304a;box-shadow:inset 0 0 0 1px var(--accent)}.add-property,.add-item{width:100%;height:38px;margin:5px 0;border:1px dashed #4a5260;border-radius:10px;background:transparent;color:var(--muted);font:14px system-ui}.property{height:46px;margin:5px 0;border:1px solid #3d4450;border-radius:10px;background:#171a21;display:flex;align-items:center;gap:7px;padding:0 12px;touch-action:manipulation}.prop-key{color:var(--green);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-colon{color:var(--muted)}.prop-value{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-type{margin-left:auto;color:var(--muted);font:11px ui-monospace,monospace}.prop-edit .rename-box{display:grid;gap:9px}.prop-edit label{font-size:12px;color:var(--muted)}.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.type-grid button{height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:13px system-ui}.type-grid button.active{border-color:var(--green);color:var(--green);background:#193022}.value-wrap.hidden{display:none}.array-node>.card .icon{border-color:var(--accent);color:var(--accent)}.array-item .prop-value{flex:1}.array-item .prop-type{margin-left:auto}
-.json-export{width:100%;height:46px;margin-top:14px;border:1px solid var(--green);border-radius:12px;background:#142019;color:var(--green);font:700 15px system-ui}.json-box{width:min(560px,100%);max-height:82vh;display:flex;flex-direction:column;gap:10px}.json-preview{margin:0;min-height:180px;max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#0d1015;color:#dfe6ee;padding:12px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre}.json-actions{display:flex;gap:8px}.json-actions button{flex:1;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit}.json-error{color:#ff9b9b;white-space:pre-wrap}.note{text-align:center;color:var(--muted);font-size:11px;margin-top:12px}
-</style></head><body><main>
-<div class="top"><b>JSON Drop</b><small>Tap = apri/chiudi · swipe a sinistra = rinomina · tieni e trascina = sposta</small></div>
-<section class="object root" id="root"><div class="card"><span class="icon">{}</span><span class="name">ROOT</span><span class="brace">{</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div></section>
-<button class="json-export" id="preview-json" type="button">Preview JSON</button>
-<div class="note">Durante il drag reagisce solo la destinazione sotto il dito.</div>
-</main><script>
-const root=document.querySelector('#root');
-let propSeq=0,drag=null,ghost=null,origin=null,originNext=null,timer=null,sx=0,sy=0,dx=0,dy=0,armed=false,current=null,lastX=0,lastY=0,lastTarget=null,raf=0,pendingX=0,pendingY=0,lastSwapY=null;
+:root{
+  color-scheme:dark;
+  --bg:#0b0c0f;
+  --panel:#151820;
+  --line:#343b47;
+  --text:#eef2f7;
+  --muted:#8d96a5;
+  --green:#65ff8f;
+  --accent:#9db2ff;
+  --danger:#ff7f87;
+  --indent:18px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:15px system-ui,-apple-system,sans-serif;
+  min-height:100vh;
+}
+main{
+  max-width:720px;
+  margin:auto;
+  padding:18px 12px 80px;
+}
+.top{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:14px;
+}
+.top b{font-size:18px;margin-right:auto}
+.top button{
+  height:38px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--panel);
+  color:var(--text);
+  padding:0 11px;
+  font:inherit;
+}
+.top .clear{color:var(--danger)}
+.editor{
+  border:1px solid #252b35;
+  border-radius:14px;
+  background:#0e1015;
+  padding:10px 0 14px;
+  overflow-x:auto;
+  box-shadow:0 16px 40px #0004;
+}
+.line{
+  min-height:34px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding-right:8px;
+  white-space:nowrap;
+  font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+.line:hover{background:#ffffff05}
+.code{color:var(--muted)}
+.key,.string{
+  color:var(--green);
+  min-width:1ch;
+  border-radius:5px;
+  outline:none;
+}
+.number{color:#9db2ff}
+.boolean{color:#ffc978}
+.null{color:#c49cff}
+.editable{
+  padding:1px 2px;
+  border-bottom:1px solid transparent;
+}
+.editable:focus{
+  background:#65ff8f0d;
+  border-bottom-color:var(--green);
+}
+.invalid{
+  color:var(--danger)!important;
+  border-bottom-color:var(--danger)!important;
+}
+.delete{
+  margin-left:auto;
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#626b78;
+  font-size:20px;
+  line-height:1;
+}
+.delete:active,.delete:hover{color:var(--danger);background:#ff7f8710}
+.add-line{
+  min-height:34px;
+  display:flex;
+  align-items:center;
+  padding-right:8px;
+}
+.add-btn{
+  border:0;
+  background:transparent;
+  color:#687383;
+  font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  padding:7px 4px;
+}
+.add-btn:active,.add-btn:hover{color:var(--green)}
+.type-menu{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:4px 8px 8px 0;
+}
+.type-menu button{
+  height:34px;
+  border:1px solid #39414e;
+  border-radius:9px;
+  background:#151922;
+  color:#b9c1cd;
+  padding:0 10px;
+  font:12px system-ui;
+}
+.type-menu button:active,.type-menu button:hover{
+  border-color:var(--green);
+  color:var(--green);
+}
+.hint{
+  margin:12px 2px 0;
+  color:var(--muted);
+  font-size:12px;
+  text-align:center;
+}
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:22px;
+  transform:translateX(-50%) translateY(10px);
+  background:#222832;
+  border:1px solid var(--line);
+  color:var(--text);
+  border-radius:999px;
+  padding:9px 14px;
+  opacity:0;
+  pointer-events:none;
+  transition:.18s ease;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:520px){
+  main{padding-left:8px;padding-right:8px}
+  .top button{padding:0 9px;font-size:13px}
+  :root{--indent:14px}
+  .line{font-size:13px}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <b>JSON Drop</b>
+    <button id="copy">Copia</button>
+    <button id="download">Scarica</button>
+    <button class="clear" id="clear">Clear</button>
+  </div>
+  <div class="editor" id="editor" aria-label="Editor JSON visuale"></div>
+  <div class="hint">Tocca testo e valori per modificarli. La sintassi resta gestita dall'app.</div>
+</main>
+<div class="toast" id="toast"></div>
 
-function bindObject(o){
-  const card=o.querySelector(':scope>.card');
-  if(!o.classList.contains('root')){
-    card.addEventListener('touchstart',start,{passive:false});
-    card.addEventListener('touchmove',move,{passive:false});
-    card.addEventListener('touchend',end,{passive:false});
-    card.addEventListener('touchcancel',cancel,{passive:false});
-  }
-  bindAddButton(o.querySelector(':scope>.children'));
+<script>
+const editor=document.querySelector('#editor');
+const toast=document.querySelector('#toast');
+let nextId=1;
+let openAdder=null;
+let focusAfterRender=null;
+
+const node=(type,value)=>({id:nextId++,type,value});
+const root={id:0,type:'object',children:[]};
+
+function primitive(type){
+  if(type==='string')return node('string','value');
+  if(type==='number')return node('number','0');
+  if(type==='boolean')return node('boolean','true');
+  if(type==='null')return node('null',null);
+  if(type==='object')return {id:nextId++,type:'object',children:[]};
+  if(type==='array')return {id:nextId++,type:'array',children:[]};
 }
 
-function bindAddButton(children){
-  const add=children?.querySelector(':scope>.add-property,:scope>.add-item');
-  if(!add||add.dataset.bound)return;
-  add.dataset.bound='1';
-  add.addEventListener('click',e=>{
+function property(type){
+  return {id:nextId++,kind:'property',key:'key',value:primitive(type)};
+}
+
+function esc(s){return JSON.stringify(String(s))}
+
+function valueToJSON(v,depth){
+  if(v.type==='string')return esc(v.value);
+  if(v.type==='number')return String(v.value);
+  if(v.type==='boolean')return String(v.value);
+  if(v.type==='null')return 'null';
+
+  const pad='  '.repeat(depth);
+  const inner='  '.repeat(depth+1);
+
+  if(v.type==='object'){
+    if(!v.children.length)return '{}';
+    return '{\\n'+v.children.map(p=>inner+esc(p.key)+': '+valueToJSON(p.value,depth+1)).join(',\\n')+'\\n'+pad+'}';
+  }
+
+  if(v.type==='array'){
+    if(!v.children.length)return '[]';
+    return '[\\n'+v.children.map(i=>inner+valueToJSON(i,depth+1)).join(',\\n')+'\\n'+pad+']';
+  }
+}
+
+function jsonText(){
+  return valueToJSON(root,0);
+}
+
+function findContainer(id,n=root){
+  if(n.id===id&&(n.type==='object'||n.type==='array'))return n;
+  if(n.type==='object'){
+    for(const p of n.children){
+      const r=findContainer(id,p.value);
+      if(r)return r;
+    }
+  }
+  if(n.type==='array'){
+    for(const i of n.children){
+      const r=findContainer(id,i);
+      if(r)return r;
+    }
+  }
+  return null;
+}
+
+function findProperty(id,n=root){
+  if(n.type==='object'){
+    for(const p of n.children){
+      if(p.id===id)return p;
+      const r=findProperty(id,p.value);
+      if(r)return r;
+    }
+  }
+  if(n.type==='array'){
+    for(const i of n.children){
+      const r=findProperty(id,i);
+      if(r)return r;
+    }
+  }
+  return null;
+}
+
+function findNode(id,n=root){
+  if(n.id===id)return n;
+  if(n.type==='object'){
+    for(const p of n.children){
+      if(p.value.id===id)return p.value;
+      const r=findNode(id,p.value);
+      if(r)return r;
+    }
+  }
+  if(n.type==='array'){
+    for(const i of n.children){
+      if(i.id===id)return i;
+      const r=findNode(id,i);
+      if(r)return r;
+    }
+  }
+  return null;
+}
+
+function removeById(id,n=root){
+  if(n.type==='object'){
+    const idx=n.children.findIndex(p=>p.id===id);
+    if(idx>=0){n.children.splice(idx,1);return true}
+    for(const p of n.children)if(removeById(id,p.value))return true;
+  }
+  if(n.type==='array'){
+    const idx=n.children.findIndex(i=>i.id===id);
+    if(idx>=0){n.children.splice(idx,1);return true}
+    for(const i of n.children)if(removeById(id,i))return true;
+  }
+  return false;
+}
+
+function line(depth,html){
+  return '<div class="line" style="padding-left:calc(10px + '+depth+' * var(--indent))">'+html+'</div>';
+}
+
+function renderPrimitive(v,depth,prefix,suffix,deleteId){
+  let valueHtml='';
+  if(v.type==='string'){
+    valueHtml='<span class="code">&quot;</span><span class="string editable" contenteditable="true" spellcheck="false" data-edit-value="'+v.id+'">'+escapeHTML(v.value)+'</span><span class="code">&quot;</span>';
+  }else if(v.type==='number'){
+    valueHtml='<span class="number editable" contenteditable="true" spellcheck="false" data-edit-value="'+v.id+'">'+escapeHTML(v.value)+'</span>';
+  }else if(v.type==='boolean'){
+    valueHtml='<span class="boolean editable" contenteditable="true" spellcheck="false" data-edit-value="'+v.id+'">'+escapeHTML(v.value)+'</span>';
+  }else{
+    valueHtml='<span class="null">null</span>';
+  }
+  return line(depth,prefix+valueHtml+suffix+'<button class="delete" data-delete="'+deleteId+'" aria-label="Elimina">×</button>');
+}
+
+function renderValue(v,depth,prefix,suffix,deleteId){
+  if(!['object','array'].includes(v.type)){
+    return renderPrimitive(v,depth,prefix,suffix,deleteId);
+  }
+
+  const open=v.type==='object'?'{':'[';
+  const close=v.type==='object'?'}':']';
+  let html=line(depth,prefix+'<span class="code">'+open+'</span><button class="delete" data-delete="'+deleteId+'" aria-label="Elimina">×</button>');
+
+  const children=v.children;
+  children.forEach((child,index)=>{
+    const comma=index<children.length-1?',':'';
+    if(v.type==='object'){
+      const key='<span class="code">&quot;</span><span class="key editable" contenteditable="true" spellcheck="false" data-edit-key="'+child.id+'">'+escapeHTML(child.key)+'</span><span class="code">&quot;: </span>';
+      html+=renderValue(child.value,depth+1,key,comma,child.id);
+    }else{
+      html+=renderValue(child,depth+1,'',comma,child.id);
+    }
+  });
+
+  html+=renderAdder(v,depth+1);
+  html+=line(depth,'<span class="code">'+close+suffix+'</span>');
+  return html;
+}
+
+function renderAdder(container,depth){
+  const label=container.type==='object'?'+ Property':'+ Item';
+  let html='<div class="add-line" style="padding-left:calc(10px + '+depth+' * var(--indent))"><button class="add-btn" data-add="'+container.id+'">'+label+'</button></div>';
+
+  if(openAdder===container.id){
+    html+='<div class="type-menu" style="padding-left:calc(10px + '+depth+' * var(--indent))">';
+    ['string','number','boolean','null','object','array'].forEach(t=>{
+      const label=t==='object'?'Object {}':t==='array'?'Array []':t[0].toUpperCase()+t.slice(1);
+      html+='<button data-type="'+t+'" data-parent="'+container.id+'">'+label+'</button>';
+    });
+    html+='</div>';
+  }
+  return html;
+}
+
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render(){
+  let html=line(0,'<span class="code">{</span>');
+  root.children.forEach((p,index)=>{
+    const comma=index<root.children.length-1?',':'';
+    const key='<span class="code">&quot;</span><span class="key editable" contenteditable="true" spellcheck="false" data-edit-key="'+p.id+'">'+escapeHTML(p.key)+'</span><span class="code">&quot;: </span>';
+    html+=renderValue(p.value,1,key,comma,p.id);
+  });
+  html+=renderAdder(root,1);
+  html+=line(0,'<span class="code">}</span>');
+  editor.innerHTML=html;
+  bindEditor();
+
+  if(focusAfterRender){
+    const el=editor.querySelector(focusAfterRender);
+    focusAfterRender=null;
+    if(el){
+      el.focus();
+      const range=document.createRange();
+      range.selectNodeContents(el);
+      const sel=getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+}
+
+function bindEditor(){
+  editor.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
+    const id=Number(b.dataset.add);
+    openAdder=openAdder===id?null:id;
+    render();
+  });
+
+  editor.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{
+    const parent=findContainer(Number(b.dataset.parent));
+    if(!parent)return;
+
+    if(parent.type==='object'){
+      const p=property(b.dataset.type);
+      parent.children.push(p);
+      focusAfterRender='[data-edit-key="'+p.id+'"]';
+    }else{
+      const v=primitive(b.dataset.type);
+      parent.children.push(v);
+      if(['string','number','boolean'].includes(v.type)){
+        focusAfterRender='[data-edit-value="'+v.id+'"]';
+      }
+    }
+
+    openAdder=null;
+    render();
+  });
+
+  editor.querySelectorAll('[data-delete]').forEach(b=>b.onclick=e=>{
     e.stopPropagation();
-    if(e.currentTarget.classList.contains('add-item'))createItem(children);
-    else createProperty(children);
-  });
-}
-
-function appendContent(children,node){
-  const add=children.querySelector(':scope>.add-property,:scope>.add-item');
-  if(add)children.insertBefore(node,add);
-  else children.append(node);
-}
-
-function defaultValue(type){
-  if(type==='number')return '0';
-  if(type==='boolean')return 'true';
-  if(type==='null')return 'null';
-  return 'value';
-}
-
-function makePrimitive(key,type,value){
-  const p=document.createElement('div');
-  p.className='property';
-  p.dataset.type=type;
-  p.innerHTML='<span class="prop-key"></span><span class="prop-colon">:</span><span class="prop-value"></span><span class="prop-type"></span>';
-  p.querySelector('.prop-key').textContent=key;
-  p.querySelector('.prop-value').textContent=value;
-  p.querySelector('.prop-type').textContent=type;
-  p.addEventListener('click',()=>editPrimitive(p));
-  return p;
-}
-
-function makeObjectProperty(key){
-  const o=document.createElement('section');
-  o.className='object';
-  o.dataset.type='object';
-  o.innerHTML='<div class="card"><span class="icon">{}</span><span class="name"></span><span class="prop-colon">:</span><span class="brace">{}</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div>';
-  o.querySelector(':scope>.card>.name').textContent=key;
-  bindObject(o);
-  return o;
-}
-
-function makeArrayProperty(key){
-  const a=document.createElement('section');
-  a.className='object array-node';
-  a.dataset.type='array';
-  a.innerHTML='<div class="card"><span class="icon">[]</span><span class="name"></span><span class="prop-colon">:</span><span class="brace">[]</span></div><div class="children"><button class="add-item" type="button">+ Item</button></div>';
-  a.querySelector(':scope>.card>.name').textContent=key;
-  bindObject(a);
-  return a;
-}
-
-function makeArrayPrimitive(type,value){
-  const p=document.createElement('div');
-  p.className='property array-item';
-  p.dataset.type=type;
-  p.innerHTML='<span class="prop-value"></span><span class="prop-type"></span>';
-  p.querySelector('.prop-value').textContent=value;
-  p.querySelector('.prop-type').textContent=type;
-  p.addEventListener('click',()=>editArrayPrimitive(p));
-  return p;
-}
-
-function makeObjectItem(){
-  const o=document.createElement('section');
-  o.className='object';
-  o.dataset.type='object';
-  o.dataset.arrayItem='1';
-  o.innerHTML='<div class="card"><span class="icon">{}</span><span class="name">Object</span><span class="brace">{}</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div>';
-  bindObject(o);
-  return o;
-}
-
-function makeArrayItem(){
-  const a=document.createElement('section');
-  a.className='object array-node';
-  a.dataset.type='array';
-  a.dataset.arrayItem='1';
-  a.innerHTML='<div class="card"><span class="icon">[]</span><span class="name">Array</span><span class="brace">[]</span></div><div class="children"><button class="add-item" type="button">+ Item</button></div>';
-  bindObject(a);
-  return a;
-}
-
-function createProperty(children){
-  const key='key'+(++propSeq);
-  openPropertyEditor({
-    key,
-    type:'string',
-    value:'value',
-    onSave:data=>{
-      const node=data.type==='object'
-        ? makeObjectProperty(data.key)
-        : data.type==='array'
-          ? makeArrayProperty(data.key)
-          : makePrimitive(data.key,data.type,data.value);
-      appendContent(children,node);
-    }
-  });
-}
-
-function createItem(children){
-  openItemEditor({
-    type:'string',
-    value:'value',
-    onSave:data=>{
-      const node=data.type==='object'
-        ? makeObjectItem()
-        : data.type==='array'
-          ? makeArrayItem()
-          : makeArrayPrimitive(data.type,data.value);
-      appendContent(children,node);
-    }
-  });
-}
-
-root.querySelector(':scope>.card').addEventListener('click',()=>root.classList.toggle('collapsed'));
-bindObject(root);
-
-function clearTarget(){
-  document.querySelectorAll('.drop-inside').forEach(x=>x.classList.remove('drop-inside'));
-  lastTarget=null;
-}
-
-function animatedObjects(){
-  return [...document.querySelectorAll('.object:not(.root)')].filter(o=>!o.closest('.source-drag'));
-}
-
-function moveWithFlip(mutator){
-  const els=animatedObjects(),before=new Map();
-  els.forEach(o=>{
-    const r=o.getBoundingClientRect();
-    o.getAnimations().forEach(a=>a.cancel());
-    before.set(o,r);
+    removeById(Number(b.dataset.delete));
+    render();
   });
 
-  mutator();
+  editor.querySelectorAll('[data-edit-key]').forEach(el=>{
+    const p=findProperty(Number(el.dataset.editKey));
+    if(!p)return;
+    const old=p.key;
 
-  const moved=[];
-  els.forEach(o=>{
-    if(!o.isConnected)return;
-    const r=before.get(o),n=o.getBoundingClientRect();
-    const x=r.left-n.left,y=r.top-n.top;
-    if(Math.abs(x)<.5&&Math.abs(y)<.5)return;
-    moved.push({o,x,y});
+    el.onkeydown=e=>{
+      if(e.key==='Enter'){e.preventDefault();el.blur()}
+      if(e.key==='Escape'){e.preventDefault();el.textContent=old;el.blur()}
+    };
+
+    el.onblur=()=>{
+      const v=el.textContent.trim();
+      p.key=v||old;
+      if(!v)render();
+    };
   });
 
-  const movedSet=new Set(moved.map(m=>m.o));
-  moved.forEach(({o,x,y})=>{
-    let p=o.parentElement?.closest('.object'),nested=false;
-    while(p){
-      if(movedSet.has(p)){nested=true;break}
-      p=p.parentElement?.closest('.object');
-    }
-    if(nested)return;
-    o.style.willChange='transform';
-    const a=o.animate(
-      [{transform:'translate3d('+x+'px,'+y+'px,0)'},{transform:'translate3d(0,0,0)'}],
-      {duration:230,easing:'cubic-bezier(.22,1,.36,1)'}
-    );
-    a.onfinish=()=>o.style.removeProperty('will-change');
-  });
-}
+  editor.querySelectorAll('[data-edit-value]').forEach(el=>{
+    const v=findNode(Number(el.dataset.editValue));
+    if(!v)return;
+    const old=v.value;
 
-function targetAt(x,y){
-  document.querySelectorAll('.drop-inside').forEach(el=>el.classList.remove('drop-inside'));
-  const card=document.elementsFromPoint(x,y)
-    .map(el=>el.closest?.('.card'))
-    .find(card=>card&&!card.closest('.drag-ghost')&&!card.closest('.source-drag'));
+    el.onkeydown=e=>{
+      if(e.key==='Enter'){e.preventDefault();el.blur()}
+      if(e.key==='Escape'){e.preventDefault();el.textContent=old;el.blur()}
+    };
 
-  if(!card){lastTarget=null;return null}
-  const o=card.parentElement;
-  if(o===drag||drag?.contains(o)){lastTarget=null;return null}
+    el.oninput=()=>{
+      if(v.type==='number'){
+        el.classList.toggle('invalid',!validNumber(el.textContent));
+      }else if(v.type==='boolean'){
+        const t=el.textContent.trim();
+        el.classList.toggle('invalid',t!=='true'&&t!=='false');
+      }
+    };
 
-  const r=card.getBoundingClientRect(),p=(y-r.top)/r.height;
-  let mode=p<.26?'before':p>.74?'after':'inside';
-  if(o.classList.contains('root'))mode='inside';
-
-  const same=lastTarget?.o===o&&lastTarget?.mode===mode;
-
-  if(mode==='inside'){
-    card.classList.add('drop-inside');
-    lastTarget={o,mode};
-    return lastTarget;
-  }
-
-  if(!same){
-    if(lastSwapY!==null&&Math.abs(y-lastSwapY)<11)return lastTarget;
-    moveWithFlip(()=>{
-      if(mode==='before')o.before(drag);
-      else o.after(drag);
-    });
-    lastSwapY=y;
-  }
-
-  lastTarget={o,mode};
-  return lastTarget;
-}
-
-function start(e){
-  if(e.currentTarget.parentElement.classList.contains('root'))return;
-  if(e.touches.length!==1)return;
-  e.preventDefault();
-  const t=e.touches[0],o=e.currentTarget.parentElement;
-  current=o;
-  sx=lastX=t.clientX;sy=lastY=t.clientY;
-  armed=false;drag=null;lastSwapY=null;
-  clearTimeout(timer);
-  timer=setTimeout(()=>begin(o),240);
-}
-
-function begin(o){
-  if(!current||armed)return;
-  drag=o;
-  origin=o.parentElement;
-  originNext=o.nextSibling;
-  armed=true;
-
-  const r=o.getBoundingClientRect();
-  dx=sx-r.left;dy=sy-r.top;
-
-  ghost=o.cloneNode(true);
-  ghost.classList.remove('source-drag');
-  ghost.classList.add('drag-ghost');
-  ghost.style.left='0';
-  ghost.style.top='0';
-  ghost.style.width=r.width+'px';
-  ghost.style.transform='translate3d('+r.left+'px,'+r.top+'px,0)';
-  document.body.append(ghost);
-  o.classList.add('source-drag');
-}
-
-function dragFrame(){
-  raf=0;
-  if(!armed||!ghost)return;
-  ghost.style.transform='translate3d('+(pendingX-dx)+'px,'+(pendingY-dy)+'px,0)';
-  targetAt(pendingX,pendingY);
-}
-
-function move(e){
-  if(!current||e.touches.length!==1)return;
-  e.preventDefault();
-  const t=e.touches[0];
-  lastX=t.clientX;lastY=t.clientY;
-  const mx=lastX-sx,my=lastY-sy;
-
-  if(!armed){
-    if(mx<0&&Math.abs(mx)>Math.abs(my)){
-      current.classList.add('swiping');
-      current.querySelector(':scope>.card').style.transform='translateX('+Math.max(-72,mx*.65)+'px)';
-      if(mx<-38)current.classList.add('rename-ready');
-      else current.classList.remove('rename-ready');
-    }
-    if(mx<-58&&Math.abs(mx)>Math.abs(my)*1.25){
-      clearTimeout(timer);timer=null;
-      const o=current;current=null;
-      o.querySelector(':scope>.card').style.transform='translateX(-72px)';
-      setTimeout(()=>{
-        o.querySelector(':scope>.card').style.transform='';
-        o.classList.remove('swiping','rename-ready');
-        renameObjectProperty(o);
-      },120);
-      return;
-    }
-    if(Math.hypot(mx,my)>14){clearTimeout(timer);timer=null}
-    return;
-  }
-
-  pendingX=lastX;pendingY=lastY;
-  if(!raf)raf=requestAnimationFrame(dragFrame);
-}
-
-function restoreOrigin(){
-  moveWithFlip(()=>{
-    if(originNext&&originNext.parentElement===origin)origin.insertBefore(drag,originNext);
-    else origin.append(drag);
-  });
-}
-
-function end(e){
-  e.preventDefault();
-  clearTimeout(timer);timer=null;
-
-  if(!armed||!drag){
-    const tapped=current&&Math.hypot(lastX-sx,lastY-sy)<10;
-    const tappedObject=current;
-    reset();
-    if(tapped&&tappedObject)tappedObject.classList.toggle('collapsed');
-    return;
-  }
-
-  if(raf){cancelAnimationFrame(raf);raf=0}
-  pendingX=lastX;pendingY=lastY;
-  ghost.style.transform='translate3d('+(lastX-dx)+'px,'+(lastY-dy)+'px,0)';
-  const t=targetAt(lastX,lastY);
-
-  if(t?.mode==='inside'){
-    moveWithFlip(()=>{
-      t.o.classList.remove('collapsed');
-      appendContent(t.o.querySelector(':scope>.children'),drag);
-    });
-  }else if(!t){
-    restoreOrigin();
-  }
-
-  drag.classList.remove('source-drag');
-  ghost?.remove();ghost=null;
-  clearTarget();
-  reset();
-}
-
-function cancel(){
-  clearTimeout(timer);
-  if(raf){cancelAnimationFrame(raf);raf=0}
-  if(drag){
-    restoreOrigin();
-    drag.classList.remove('source-drag');
-  }
-  ghost?.remove();ghost=null;
-  clearTarget();
-  reset();
-}
-
-function reset(){
-  if(current){
-    current.querySelector(':scope>.card')?.style.removeProperty('transform');
-    current.classList.remove('swiping','rename-ready');
-  }
-  ghost?.remove();ghost=null;
-  drag=origin=originNext=current=null;
-  armed=false;lastSwapY=null;
-}
-
-function openPropertyEditor({key,type,value,onSave}){
-  const layer=document.createElement('div');
-  layer.className='rename prop-edit';
-  layer.innerHTML='<div class="rename-box"><label>Key</label><input class="key-input" aria-label="Key"><label>Value type</label><div class="type-grid"><button data-type="string">String</button><button data-type="number">Number</button><button data-type="boolean">Boolean</button><button data-type="null">Null</button><button data-type="object">Object {}</button><button data-type="array">Array []</button></div><div class="value-wrap"><label>Value</label><input class="value-input" aria-label="Value"></div><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
-
-  const keyInput=layer.querySelector('.key-input'),valueInput=layer.querySelector('.value-input'),wrap=layer.querySelector('.value-wrap');
-  let selected=type||'string';
-  keyInput.value=key||'';
-  valueInput.value=value??defaultValue(selected);
-
-  const sync=()=>{
-    layer.querySelectorAll('.type-grid button').forEach(b=>b.classList.toggle('active',b.dataset.type===selected));
-    wrap.classList.toggle('hidden',selected==='object'||selected==='array'||selected==='null');
-    if(selected==='null')valueInput.value='null';
-    else if(selected==='boolean'&&!['true','false'].includes(valueInput.value))valueInput.value='true';
-    else if(selected==='number'&&!valueInput.value.trim())valueInput.value='0';
-  };
-
-  layer.querySelectorAll('.type-grid button').forEach(b=>b.onclick=()=>{
-    selected=b.dataset.type;
-    valueInput.value=defaultValue(selected);
-    sync();
-  });
-
-  document.body.append(layer);
-  sync();
-  setTimeout(()=>{keyInput.focus();keyInput.select()},0);
-
-  let closed=false;
-  const close=save=>{
-    if(closed)return;
-    if(save){
-      const k=keyInput.value.trim();
-      if(!k)return;
-      closed=true;
-      const v=selected==='null'?'null':valueInput.value.trim();
-      onSave({key:k,type:selected,value:v});
-    }else closed=true;
-    layer.remove();
-  };
-
-  layer.querySelector('.save').onclick=()=>close(true);
-  layer.querySelector('.cancel').onclick=()=>close(false);
-  layer.addEventListener('pointerdown',e=>{if(e.target===layer)close(false)});
-  layer.addEventListener('keydown',e=>{
-    if(e.key==='Escape')close(false);
-    if(e.key==='Enter'&&e.target===valueInput)close(true);
-  });
-}
-
-function editPrimitive(p){
-  openPropertyEditor({
-    key:p.querySelector('.prop-key').textContent,
-    type:p.dataset.type||'string',
-    value:p.querySelector('.prop-value').textContent,
-    onSave:data=>{
-      if(data.type==='object'){
-        p.replaceWith(makeObjectProperty(data.key));
+    el.onblur=()=>{
+      const raw=el.textContent;
+      if(v.type==='string'){
+        v.value=raw;
         return;
       }
-      if(data.type==='array'){
-        p.replaceWith(makeArrayProperty(data.key));
+      if(v.type==='number'){
+        const t=raw.trim();
+        if(validNumber(t))v.value=t;
+        else{v.value=old;render()}
         return;
       }
-      p.dataset.type=data.type;
-      p.querySelector('.prop-key').textContent=data.key;
-      p.querySelector('.prop-value').textContent=data.value;
-      p.querySelector('.prop-type').textContent=data.type;
-    }
+      if(v.type==='boolean'){
+        const t=raw.trim();
+        if(t==='true'||t==='false')v.value=t;
+        else{v.value=old;render()}
+      }
+    };
   });
 }
 
-function openItemEditor({type,value,onSave}){
-  const layer=document.createElement('div');
-  layer.className='rename prop-edit';
-  layer.innerHTML='<div class="rename-box"><label>Item type</label><div class="type-grid"><button data-type="string">String</button><button data-type="number">Number</button><button data-type="boolean">Boolean</button><button data-type="null">Null</button><button data-type="object">Object {}</button><button data-type="array">Array []</button></div><div class="value-wrap"><label>Value</label><input class="value-input" aria-label="Value"></div><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
-  const valueInput=layer.querySelector('.value-input'),wrap=layer.querySelector('.value-wrap');
-  let selected=type||'string';
-  valueInput.value=value??defaultValue(selected);
-
-  const sync=()=>{
-    layer.querySelectorAll('.type-grid button').forEach(b=>b.classList.toggle('active',b.dataset.type===selected));
-    wrap.classList.toggle('hidden',selected==='object'||selected==='array'||selected==='null');
-    if(selected==='null')valueInput.value='null';
-    else if(selected==='boolean'&&!['true','false'].includes(valueInput.value))valueInput.value='true';
-    else if(selected==='number'&&!valueInput.value.trim())valueInput.value='0';
-  };
-
-  layer.querySelectorAll('.type-grid button').forEach(b=>b.onclick=()=>{
-    selected=b.dataset.type;
-    valueInput.value=defaultValue(selected);
-    sync();
-  });
-
-  document.body.append(layer);
-  sync();
-  if(!wrap.classList.contains('hidden'))setTimeout(()=>{valueInput.focus();valueInput.select()},0);
-
-  let closed=false;
-  const close=save=>{
-    if(closed)return;
-    closed=true;
-    if(save){
-      const v=selected==='null'?'null':valueInput.value.trim();
-      onSave({type:selected,value:v});
-    }
-    layer.remove();
-  };
-
-  layer.querySelector('.save').onclick=()=>close(true);
-  layer.querySelector('.cancel').onclick=()=>close(false);
-  layer.addEventListener('pointerdown',e=>{if(e.target===layer)close(false)});
-  valueInput.addEventListener('keydown',e=>{if(e.key==='Enter')close(true);if(e.key==='Escape')close(false)});
+function validNumber(s){
+  return /^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/.test(String(s).trim());
 }
 
-function editArrayPrimitive(p){
-  openItemEditor({
-    type:p.dataset.type||'string',
-    value:p.querySelector('.prop-value').textContent,
-    onSave:data=>{
-      if(data.type==='object'){p.replaceWith(makeObjectItem());return}
-      if(data.type==='array'){p.replaceWith(makeArrayItem());return}
-      p.dataset.type=data.type;
-      p.querySelector('.prop-value').textContent=data.value;
-      p.querySelector('.prop-type').textContent=data.type;
-    }
-  });
+function flash(msg){
+  toast.textContent=msg;
+  toast.classList.add('show');
+  clearTimeout(flash.t);
+  flash.t=setTimeout(()=>toast.classList.remove('show'),1200);
 }
 
-function contentNodes(children){
-  return [...children.children].filter(el=>!el.matches('.add-property,.add-item'));
-}
+document.querySelector('#clear').onclick=()=>{
+  root.children.length=0;
+  openAdder=null;
+  render();
+  flash('ROOT svuotato');
+};
 
-function primitiveValue(node){
-  const type=node.dataset.type||'string';
-  const raw=node.querySelector('.prop-value')?.textContent??'';
-
-  if(type==='string')return raw;
-  if(type==='null')return null;
-
-  if(type==='number'){
-    if(!raw.trim()||!Number.isFinite(Number(raw)))throw new Error('Numero non valido: '+raw);
-    return Number(raw);
-  }
-
-  if(type==='boolean'){
-    if(raw==='true')return true;
-    if(raw==='false')return false;
-    throw new Error('Boolean non valido: '+raw+' (usa true o false)');
-  }
-
-  throw new Error('Tipo non supportato: '+type);
-}
-
-function nodeValue(node){
-  if(node.classList.contains('property'))return primitiveValue(node);
-  if(node.classList.contains('object')){
-    const children=node.querySelector(':scope>.children');
-    return node.dataset.type==='array'
-      ? arrayValue(children)
-      : objectValue(children);
-  }
-  throw new Error('Nodo JSON sconosciuto');
-}
-
-function nodeKey(node){
-  if(node.classList.contains('property')){
-    return node.querySelector('.prop-key')?.textContent?.trim()||'';
-  }
-  return node.querySelector(':scope>.card>.name')?.textContent?.trim()||'';
-}
-
-function objectValue(children){
-  const out={},seen=new Set();
-
-  for(const node of contentNodes(children)){
-    const key=nodeKey(node);
-    if(!key)throw new Error('Una Property non ha una key');
-    if(seen.has(key))throw new Error('Key duplicata: '+key);
-    seen.add(key);
-    out[key]=nodeValue(node);
-  }
-
-  return out;
-}
-
-function arrayValue(children){
-  return contentNodes(children).map(nodeValue);
-}
-
-function buildJSON(){
-  return objectValue(root.querySelector(':scope>.children'));
-}
-
-function showJSON(){
-  const layer=document.createElement('div');
-  layer.className='rename';
-
-  let text='',error='';
+document.querySelector('#copy').onclick=async()=>{
+  const text=jsonText();
   try{
-    text=JSON.stringify(buildJSON(),null,2);
-  }catch(err){
-    error=err?.message||String(err);
+    await navigator.clipboard.writeText(text);
+  }catch{
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.append(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
   }
+  flash('JSON copiato');
+};
 
-  layer.innerHTML='<div class="rename-box json-box"><pre class="json-preview"></pre><div class="json-actions"><button class="close-json">Chiudi</button><button class="copy-json">Copia</button><button class="download-json">Scarica .json</button></div></div>';
-  const pre=layer.querySelector('.json-preview');
-  pre.textContent=error?'Errore JSON:\n'+error:text;
-  if(error)pre.classList.add('json-error');
+document.querySelector('#download').onclick=()=>{
+  const blob=new Blob([jsonText()+'\\n'],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='data.json';
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
 
-  document.body.append(layer);
-
-  const close=()=>layer.remove();
-  layer.querySelector('.close-json').onclick=close;
-  layer.addEventListener('pointerdown',e=>{if(e.target===layer)close()});
-
-  const copy=layer.querySelector('.copy-json');
-  const download=layer.querySelector('.download-json');
-
-  if(error){
-    copy.disabled=true;
-    download.disabled=true;
-    return;
-  }
-
-  copy.onclick=async()=>{
-    try{
-      await navigator.clipboard.writeText(text);
-      copy.textContent='Copiato ✓';
-    }catch{
-      const area=document.createElement('textarea');
-      area.value=text;
-      document.body.append(area);
-      area.select();
-      document.execCommand('copy');
-      area.remove();
-      copy.textContent='Copiato ✓';
-    }
-  };
-
-  download.onclick=()=>{
-    const blob=new Blob([text+'\n'],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download='data.json';
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-  };
-}
-
-document.querySelector('#preview-json').addEventListener('click',showJSON);
-
-function renameObjectProperty(o){
-  if(!o)return;
-  const layer=document.createElement('div');
-  layer.className='rename';
-  layer.innerHTML='<div class="rename-box"><input aria-label="Nuova key"><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
-  const input=layer.querySelector('input'),label=o.querySelector(':scope>.card>.name');
-  input.value=label.textContent;
-  document.body.append(layer);
-  setTimeout(()=>{input.focus();input.select()},0);
-  let closed=false;
-  const close=save=>{
-    if(closed)return;
-    closed=true;
-    if(save){const v=input.value.trim();if(v)label.textContent=v}
-    layer.remove();
-    reset();
-  };
-  layer.querySelector('.save').onclick=()=>close(true);
-  layer.querySelector('.cancel').onclick=()=>close(false);
-  layer.addEventListener('pointerdown',e=>{if(e.target===layer)close(false)});
-  input.addEventListener('keydown',e=>{if(e.key==='Enter')close(true);if(e.key==='Escape')close(false)});
-}
-</script></body></html>
+render();
+</script>
+</body>
+</html>
