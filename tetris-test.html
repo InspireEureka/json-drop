@@ -7,31 +7,52 @@
 .icon{width:30px;height:30px;border:1px solid var(--green);border-radius:7px;display:grid;place-items:center;color:var(--green);font:700 12px ui-monospace,monospace}.name{flex:1;min-width:0;color:var(--green);font:700 16px system-ui;padding:10px 4px}.rename{position:fixed;inset:0;background:#0009;z-index:200;display:grid;place-items:center;padding:24px}.rename-box{width:min(420px,100%);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;animation:pop .16s ease}.rename-actions{display:flex;gap:10px;margin-top:10px}.rename-actions button{flex:1;height:46px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-size:18px}@keyframes pop{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}.rename-box input{width:100%;height:52px;border:1px solid var(--green);border-radius:10px;background:var(--panel);color:var(--green);font:700 18px system-ui;padding:0 12px;outline:0}.brace{color:var(--muted);font:700 16px ui-monospace,monospace}
 .children{margin-left:25px;padding-left:10px;border-left:1px solid #39404c;min-height:4px}.object.collapsed>.children{display:none}.root>.card{background:#252a35}.root>.children{margin-left:17px}
 .object.source-drag{pointer-events:none}.object.source-drag>.card{opacity:.08;border-style:dashed}.object.source-drag>.children{display:none}.drag-ghost{position:fixed;z-index:100;pointer-events:none;opacity:.94;filter:drop-shadow(0 16px 25px #000a);margin:0;will-change:transform}.drag-ghost>.children{display:none}
-.card.drop-inside{border-color:var(--accent);background:#28304a;box-shadow:inset 0 0 0 1px var(--accent)}
+.card.drop-inside{border-color:var(--accent);background:#28304a;box-shadow:inset 0 0 0 1px var(--accent)}.add-property{width:100%;height:38px;margin:5px 0;border:1px dashed #4a5260;border-radius:10px;background:transparent;color:var(--muted);font:14px system-ui}.property{height:46px;margin:5px 0;border:1px solid #3d4450;border-radius:10px;background:#171a21;display:flex;align-items:center;gap:7px;padding:0 12px;touch-action:manipulation}.prop-key{color:var(--green);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-colon{color:var(--muted)}.prop-value{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-edit .rename-box{display:grid;gap:9px}.prop-edit label{font-size:12px;color:var(--muted)}
 .note{text-align:center;color:var(--muted);font-size:11px;margin-top:12px}
 </style></head><body><main>
 <div class="top"><b>JSON Drop</b><small>Tap = apri/chiudi · swipe a sinistra = rinomina · tieni e trascina = sposta</small></div>
 <button class="add" id="add">+ Object {}</button>
-<section class="object root" id="root"><div class="card"><span class="icon">{}</span><span class="name">ROOT</span><span class="brace">{</span></div><div class="children"></div></section>
+<section class="object root" id="root"><div class="card"><span class="icon">{}</span><span class="name">ROOT</span><span class="brace">{</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div></section>
 <div class="note">Durante il drag reagisce solo la destinazione sotto il dito.</div>
 </main><script>
 const root=document.querySelector('#root');
-let seq=0,drag=null,ghost=null,origin=null,originNext=null,timer=null,sx=0,sy=0,dx=0,dy=0,armed=false,current=null,lastX=0,lastY=0,lastTarget=null,raf=0,pendingX=0,pendingY=0,lastSwapY=null;
+let seq=0,propSeq=0,drag=null,ghost=null,origin=null,originNext=null,timer=null,sx=0,sy=0,dx=0,dy=0,armed=false,current=null,lastX=0,lastY=0,lastTarget=null,raf=0,pendingX=0,pendingY=0,lastSwapY=null;
+
+function bindObject(o){
+  const card=o.querySelector(':scope>.card');
+  if(!o.classList.contains('root')){
+    card.addEventListener('touchstart',start,{passive:false});
+    card.addEventListener('touchmove',move,{passive:false});
+    card.addEventListener('touchend',end,{passive:false});
+    card.addEventListener('touchcancel',cancel,{passive:false});
+  }
+  o.querySelector(':scope>.children>.add-property')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    const p=makeProperty();
+    e.currentTarget.after(p);
+    editProperty(p);
+  });
+}
 
 function make(){
   const o=document.createElement('section');
   o.className='object';
-  o.innerHTML='<div class="card"><span class="icon">{}</span><span class="name">Object '+(++seq)+'</span><span class="brace">{</span></div><div class="children"></div>';
-  const card=o.querySelector('.card');
-  card.addEventListener('touchstart',start,{passive:false});
-  card.addEventListener('touchmove',move,{passive:false});
-  card.addEventListener('touchend',end,{passive:false});
-  card.addEventListener('touchcancel',cancel,{passive:false});
+  o.innerHTML='<div class="card"><span class="icon">{}</span><span class="name">Object '+(++seq)+'</span><span class="brace">{</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div>';
+  bindObject(o);
   return o;
+}
+
+function makeProperty(){
+  const p=document.createElement('div');
+  p.className='property';
+  p.innerHTML='<span class="prop-key">key'+(++propSeq)+'</span><span class="prop-colon">:</span><span class="prop-value">value</span>';
+  p.addEventListener('click',()=>editProperty(p));
+  return p;
 }
 
 document.querySelector('#add').onclick=()=>root.querySelector(':scope>.children').append(make());
 root.querySelector(':scope>.card').addEventListener('click',()=>root.classList.toggle('collapsed'));
+bindObject(root);
 
 function clearTarget(){
   document.querySelectorAll('.drop-inside').forEach(x=>x.classList.remove('drop-inside'));
@@ -247,6 +268,37 @@ function reset(){
   ghost?.remove();ghost=null;
   drag=origin=originNext=current=null;
   armed=false;lastSwapY=null;
+}
+
+function editProperty(p){
+  if(!p)return;
+  const layer=document.createElement('div');
+  layer.className='rename prop-edit';
+  layer.innerHTML='<div class="rename-box"><label>Key</label><input class="key-input" aria-label="Key"><label>Value</label><input class="value-input" aria-label="Value"><div class="rename-actions"><button class="cancel" aria-label="Annulla">×</button><button class="save" aria-label="Salva">✓</button></div></div>';
+  const keyInput=layer.querySelector('.key-input'),valueInput=layer.querySelector('.value-input');
+  const key=p.querySelector('.prop-key'),value=p.querySelector('.prop-value');
+  keyInput.value=key.textContent;
+  valueInput.value=value.textContent;
+  document.body.append(layer);
+  setTimeout(()=>{keyInput.focus();keyInput.select()},0);
+  let closed=false;
+  const close=save=>{
+    if(closed)return;
+    closed=true;
+    if(save){
+      const k=keyInput.value.trim(),v=valueInput.value.trim();
+      if(k)key.textContent=k;
+      value.textContent=v;
+    }
+    layer.remove();
+  };
+  layer.querySelector('.save').onclick=()=>close(true);
+  layer.querySelector('.cancel').onclick=()=>close(false);
+  layer.addEventListener('pointerdown',e=>{if(e.target===layer)close(false)});
+  layer.addEventListener('keydown',e=>{
+    if(e.key==='Escape')close(false);
+    if(e.key==='Enter'&&e.target===valueInput)close(true);
+  });
 }
 
 function rename(o){
