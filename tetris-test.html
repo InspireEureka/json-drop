@@ -8,10 +8,11 @@
 .children{margin-left:25px;padding-left:10px;border-left:1px solid #39404c;min-height:4px}.object.collapsed>.children{display:none}.root>.card{background:#252a35}.root>.children{margin-left:17px}
 .object.source-drag{pointer-events:none}.object.source-drag>.card{opacity:.08;border-style:dashed}.object.source-drag>.children{display:none}.drag-ghost{position:fixed;z-index:100;pointer-events:none;opacity:.94;filter:drop-shadow(0 16px 25px #000a);margin:0;will-change:transform}.drag-ghost>.children{display:none}
 .card.drop-inside{border-color:var(--accent);background:#28304a;box-shadow:inset 0 0 0 1px var(--accent)}.add-property,.add-item{width:100%;height:38px;margin:5px 0;border:1px dashed #4a5260;border-radius:10px;background:transparent;color:var(--muted);font:14px system-ui}.property{height:46px;margin:5px 0;border:1px solid #3d4450;border-radius:10px;background:#171a21;display:flex;align-items:center;gap:7px;padding:0 12px;touch-action:manipulation}.prop-key{color:var(--green);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-colon{color:var(--muted)}.prop-value{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prop-type{margin-left:auto;color:var(--muted);font:11px ui-monospace,monospace}.prop-edit .rename-box{display:grid;gap:9px}.prop-edit label{font-size:12px;color:var(--muted)}.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.type-grid button{height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:13px system-ui}.type-grid button.active{border-color:var(--green);color:var(--green);background:#193022}.value-wrap.hidden{display:none}.array-node>.card .icon{border-color:var(--accent);color:var(--accent)}.array-item .prop-value{flex:1}.array-item .prop-type{margin-left:auto}
-.note{text-align:center;color:var(--muted);font-size:11px;margin-top:12px}
+.json-export{width:100%;height:46px;margin-top:14px;border:1px solid var(--green);border-radius:12px;background:#142019;color:var(--green);font:700 15px system-ui}.json-box{width:min(560px,100%);max-height:82vh;display:flex;flex-direction:column;gap:10px}.json-preview{margin:0;min-height:180px;max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#0d1015;color:#dfe6ee;padding:12px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre}.json-actions{display:flex;gap:8px}.json-actions button{flex:1;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit}.json-error{color:#ff9b9b;white-space:pre-wrap}.note{text-align:center;color:var(--muted);font-size:11px;margin-top:12px}
 </style></head><body><main>
 <div class="top"><b>JSON Drop</b><small>Tap = apri/chiudi · swipe a sinistra = rinomina · tieni e trascina = sposta</small></div>
 <section class="object root" id="root"><div class="card"><span class="icon">{}</span><span class="name">ROOT</span><span class="brace">{</span></div><div class="children"><button class="add-property" type="button">+ Property</button></div></section>
+<button class="json-export" id="preview-json" type="button">Preview JSON</button>
 <div class="note">Durante il drag reagisce solo la destinazione sotto il dito.</div>
 </main><script>
 const root=document.querySelector('#root');
@@ -492,6 +493,132 @@ function editArrayPrimitive(p){
     }
   });
 }
+
+function contentNodes(children){
+  return [...children.children].filter(el=>!el.matches('.add-property,.add-item'));
+}
+
+function primitiveValue(node){
+  const type=node.dataset.type||'string';
+  const raw=node.querySelector('.prop-value')?.textContent??'';
+
+  if(type==='string')return raw;
+  if(type==='null')return null;
+
+  if(type==='number'){
+    if(!raw.trim()||!Number.isFinite(Number(raw)))throw new Error('Numero non valido: '+raw);
+    return Number(raw);
+  }
+
+  if(type==='boolean'){
+    if(raw==='true')return true;
+    if(raw==='false')return false;
+    throw new Error('Boolean non valido: '+raw+' (usa true o false)');
+  }
+
+  throw new Error('Tipo non supportato: '+type);
+}
+
+function nodeValue(node){
+  if(node.classList.contains('property'))return primitiveValue(node);
+  if(node.classList.contains('object')){
+    const children=node.querySelector(':scope>.children');
+    return node.dataset.type==='array'
+      ? arrayValue(children)
+      : objectValue(children);
+  }
+  throw new Error('Nodo JSON sconosciuto');
+}
+
+function nodeKey(node){
+  if(node.classList.contains('property')){
+    return node.querySelector('.prop-key')?.textContent?.trim()||'';
+  }
+  return node.querySelector(':scope>.card>.name')?.textContent?.trim()||'';
+}
+
+function objectValue(children){
+  const out={},seen=new Set();
+
+  for(const node of contentNodes(children)){
+    const key=nodeKey(node);
+    if(!key)throw new Error('Una Property non ha una key');
+    if(seen.has(key))throw new Error('Key duplicata: '+key);
+    seen.add(key);
+    out[key]=nodeValue(node);
+  }
+
+  return out;
+}
+
+function arrayValue(children){
+  return contentNodes(children).map(nodeValue);
+}
+
+function buildJSON(){
+  return objectValue(root.querySelector(':scope>.children'));
+}
+
+function showJSON(){
+  const layer=document.createElement('div');
+  layer.className='rename';
+
+  let text='',error='';
+  try{
+    text=JSON.stringify(buildJSON(),null,2);
+  }catch(err){
+    error=err?.message||String(err);
+  }
+
+  layer.innerHTML='<div class="rename-box json-box"><pre class="json-preview"></pre><div class="json-actions"><button class="close-json">Chiudi</button><button class="copy-json">Copia</button><button class="download-json">Scarica .json</button></div></div>';
+  const pre=layer.querySelector('.json-preview');
+  pre.textContent=error?'Errore JSON:\n'+error:text;
+  if(error)pre.classList.add('json-error');
+
+  document.body.append(layer);
+
+  const close=()=>layer.remove();
+  layer.querySelector('.close-json').onclick=close;
+  layer.addEventListener('pointerdown',e=>{if(e.target===layer)close()});
+
+  const copy=layer.querySelector('.copy-json');
+  const download=layer.querySelector('.download-json');
+
+  if(error){
+    copy.disabled=true;
+    download.disabled=true;
+    return;
+  }
+
+  copy.onclick=async()=>{
+    try{
+      await navigator.clipboard.writeText(text);
+      copy.textContent='Copiato ✓';
+    }catch{
+      const area=document.createElement('textarea');
+      area.value=text;
+      document.body.append(area);
+      area.select();
+      document.execCommand('copy');
+      area.remove();
+      copy.textContent='Copiato ✓';
+    }
+  };
+
+  download.onclick=()=>{
+    const blob=new Blob([text+'\n'],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='data.json';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+}
+
+document.querySelector('#preview-json').addEventListener('click',showJSON);
 
 function renameObjectProperty(o){
   if(!o)return;
