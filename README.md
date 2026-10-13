@@ -1,5 +1,15 @@
 # JSON Drop
 
+## Python Drop (prima versione)
+
+Il pulsante **Python →** apre l'editor separato in `python/`; **JSON →** torna a JSON Drop. Funziona nella stessa pubblicazione statica, senza account o backend. Il motore Pyodide + LibCST si carica da jsDelivr soltanto entrando in Python Drop: questa versione richiede una connessione anche dopo l'apertura della pagina.
+
+Da telefono o PC puoi aprire un file `.py`, sfogliare un livello alla volta, aggiungere blocchi per variabili, funzioni, classi, condizioni, cicli, import e return, modificare nomi e valori semplici, riordinare, duplicare, eliminare e scaricare il file. Le operazioni passano per LibCST e il codice risultante viene compilato per controllare la sintassi, senza eseguirlo. Le istruzioni che l'interfaccia non sa rappresentare appaiono come **Codice originale** protetto. Un file che il motore non riesce a interpretare resta leggibile ed esportabile nella sua forma originale.
+
+La bozza viene salvata nel browser separatamente da JSON Drop; **Esporta .py** è il salvataggio affidabile. Prima di cambiare editor esporta il file se vuoi conservarlo fuori da questo browser. L'importazione accetta file UTF-8; altre codifiche sono rifiutate senza alterarli. Questa prima versione non copre l'intera grammatica Python: per esempio non modifica visivamente espressioni complesse, parametri di funzioni, rami `else`, decoratori o nomi in tutti i punti in cui sono usati. Rinominare una variabile modifica solo l'assegnazione selezionata, non i suoi riferimenti. Il controllo sintattico non garantisce che il comportamento del programma resti invariato.
+
+Il motore ha test isolati eseguibili con `python3 -m pip install libcst==1.8.6` e `python3 -m unittest discover -s tests -p 'python_engine_test.py'`. La versione di Pyodide e LibCST va verificata insieme sul browser mobile prima di considerare l'editor stabile.
+
 **Costruisci strutture JSON trascinando scatole.**
 
 Web app statica mobile-first: cinque tipi di nodo, editing inline, drag con Pointer Events, socket con snap, JSON live e salvataggio automatico nel browser. Nessun backend, account o dipendenza a runtime.

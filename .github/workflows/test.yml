@@ -13,9 +13,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Python Drop engine
+        run: |
+          python3 -m pip install libcst==1.8.6
+          python3 -m unittest discover -s tests -p python_engine_test.py
       - run: npx playwright install --with-deps chromium webkit
       - name: Browser scenarios
         run: |
           python3 -m http.server 8080 &
           for i in {1..30}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && break; sleep 1; done
           npm run test:browser
+          node tests/python_browser.cjs
